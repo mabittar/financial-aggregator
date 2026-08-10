@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano: Brazilian Financial Assets Aggregator v3.0</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+:root{
+  --primary:#0056b3; --primary-2:#0a84ff; --accent:#00a86b;
+  --bg:#f6f8fb; --panel:#ffffff; --panel-2:#eef2f7; --border:#d8e0ea;
+  --text:#1a2332; --muted:#5b6b82; --code-bg:#0d1b2a; --code-fg:#e6edf3;
+  --pending:#8a94a6; --progress:#e8a13a; --done:#00a86b; --danger:#d64545;
+  --sidebar-w:250px; --radius:10px; --shadow:0 1px 3px rgba(20,40,70,.08),0 6px 20px rgba(20,40,70,.06);
+}
+html[data-theme="dark"]{
+  --primary:#4c9aff; --primary-2:#6cb2ff; --accent:#2ecc9b;
+  --bg:#0b1220; --panel:#121b2c; --panel-2:#182338; --border:#25344d;
+  --text:#e6edf3; --muted:#93a3ba; --code-bg:#060c16; --code-fg:#dbe6f2;
+  --shadow:0 1px 3px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.55;font-size:15px;-webkit-font-smoothing:antialiased}
+a{color:var(--primary-2);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+
+.wrap{display:flex;min-height:100vh}
+nav.side{width:var(--sidebar-w);flex:0 0 var(--sidebar-w);position:fixed;top:0;bottom:0;left:0;
+  background:var(--panel);border-right:1px solid var(--border);overflow-y:auto;padding:18px 14px;z-index:20}
+nav.side .brand{font-weight:700;font-size:15px;color:var(--primary);margin:0 0 4px}
+nav.side .sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+nav.side a{display:block;padding:6px 10px;border-radius:7px;color:var(--text);font-size:13.5px;margin-bottom:2px}
+nav.side a:hover{background:var(--panel-2);text-decoration:none}
+nav.side .grp{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:14px 10px 4px;font-weight:700}
+main{margin-left:var(--sidebar-w);flex:1;padding:0 34px 80px;max-width:1080px}
+
+header.top{padding:30px 0 18px;border-bottom:1px solid var(--border);margin-bottom:26px}
+header.top h1{margin:0 0 10px;font-size:26px;letter-spacing:-.02em}
+.meta{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.meta span{font-size:12px;padding:3px 10px;border-radius:20px;background:var(--panel-2);color:var(--muted);border:1px solid var(--border)}
+.meta .version{background:var(--primary);color:#fff;border-color:var(--primary);font-weight:600}
+.meta .objective{background:transparent}
+
+.progress-wrap{margin:22px 0 8px}
+.progress-label{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-bottom:6px}
+.progress-track{height:10px;background:var(--panel-2);border-radius:20px;overflow:hidden;border:1px solid var(--border)}
+.progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--primary),var(--accent));transition:width .35s ease}
+
+section{margin:38px 0;scroll-margin-top:20px}
+section>h2{font-size:20px;margin:0 0 6px;padding-bottom:8px;border-bottom:2px solid var(--panel-2);letter-spacing:-.01em}
+section>.lead{color:var(--muted);font-size:14px;margin:0 0 18px}
+h3{font-size:16px;margin:22px 0 8px}
+p{margin:10px 0}
+
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);margin:14px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow)}
+.kpi .n{font-size:26px;font-weight:700;color:var(--primary)}
+.kpi .l{font-size:12px;color:var(--muted)}
+
+article.step{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+  margin:14px 0;box-shadow:var(--shadow);overflow:hidden}
+article.step>.head{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;user-select:none}
+article.step>.head:hover{background:var(--panel-2)}
+article.step>.head .caret{transition:transform .2s;color:var(--muted);font-size:12px}
+article.step.open>.head .caret{transform:rotate(90deg)}
+article.step .id{font-weight:700;color:var(--primary);font-variant-numeric:tabular-nums;min-width:34px}
+article.step .title{font-weight:600;flex:1}
+article.step .body{max-height:0;overflow:hidden;transition:max-height .3s ease;padding:0 18px}
+article.step.open .body{max-height:5000px;padding:4px 18px 20px}
+
+.badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.badge.pending{background:rgba(138,148,166,.18);color:var(--pending)}
+.badge.progress{background:rgba(232,161,58,.18);color:var(--progress)}
+.badge.done{background:rgba(0,168,107,.18);color:var(--done)}
+
+.deps{font-size:12px;color:var(--muted);margin:2px 0 10px}
+.deps .dep{display:inline-block;background:var(--panel-2);border:1px solid var(--border);border-radius:6px;padding:1px 7px;margin:0 4px 4px 0;font-weight:600}
+.deps .dep::before{content:"↳ ";color:var(--primary)}
+
+.brief{border-left:3px solid var(--primary);padding:6px 0 6px 12px;color:var(--text);background:var(--panel-2);border-radius:0 6px 6px 0;margin:10px 0;font-size:13.5px}
+.commit{border-left:3px solid var(--accent);padding:4px 0 4px 12px;background:rgba(0,168,107,.06);border-radius:0 6px 6px 0;margin:10px 0;font-size:13px}
+.commit code{background:transparent;color:var(--accent);font-weight:700}
+
+ul.tasks{list-style:none;padding:0;margin:8px 0}
+ul.tasks li{padding:4px 0;font-size:14px;display:flex;gap:9px;align-items:flex-start}
+ul.tasks li input{margin-top:4px;accent-color:var(--primary);width:15px;height:15px;flex:0 0 auto}
+ul.tasks li code{background:var(--panel-2);padding:1px 5px;border-radius:4px}
+
+.sub-h{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;margin:16px 0 4px}
+
+pre{background:var(--code-bg);color:var(--code-fg);border-radius:8px;padding:14px 16px;overflow-x:auto;position:relative;font-size:12.6px;line-height:1.5}
+pre code{color:inherit}
+.copy{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.1);color:#cfe;border:1px solid rgba(255,255,255,.18);
+  border-radius:6px;font-size:11px;padding:3px 9px;cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.2)}
+.copy.ok{color:#7CFC9E}
+
+.exit{border:1px dashed var(--accent);border-radius:8px;padding:8px 12px;background:rgba(0,168,107,.06);font-size:13.5px;margin:10px 0}
+.exit b{color:var(--accent)}
+.rollback{border:1px dashed var(--danger);border-radius:8px;padding:8px 12px;background:rgba(214,69,69,.06);font-size:13.5px;margin:10px 0}
+.rollback b{color:var(--danger)}
+
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:13px}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel-2);font-weight:700;font-size:12px}
+tr:nth-child(even) td{background:rgba(0,0,0,.015)}
+html[data-theme="dark"] tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+
+.tabs{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--panel);box-shadow:var(--shadow);margin:14px 0}
+.tabbar{display:flex;background:var(--panel-2);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.tabbar button{background:none;border:none;padding:11px 18px;cursor:pointer;font-size:13.5px;color:var(--muted);font-weight:600;border-bottom:2px solid transparent}
+.tabbar button.active{color:var(--primary);border-bottom-color:var(--primary);background:var(--panel)}
+.tabpane{display:none;padding:16px 18px}
+.tabpane.active{display:block}
+
+.riskmx{display:grid;grid-template-columns:90px repeat(3,1fr);gap:6px;margin:14px 0}
+.riskmx .cell{border-radius:7px;padding:8px;font-size:11.5px;min-height:58px;border:1px solid var(--border)}
+.riskmx .axis{background:var(--panel-2);font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted)}
+.rl{background:rgba(0,168,107,.14)}.rm{background:rgba(232,161,58,.16)}.rh{background:rgba(214,69,69,.16)}
+
+.tip{border-bottom:1px dotted var(--muted);cursor:help;position:relative}
+.tip:hover::after{content:attr(data-tip);position:absolute;left:0;top:130%;background:var(--code-bg);color:#fff;
+  padding:7px 10px;border-radius:6px;font-size:11.5px;width:250px;z-index:30;box-shadow:var(--shadow);font-weight:400;line-height:1.4}
+
+.mermaid{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:18px;text-align:center;margin:14px 0;box-shadow:var(--shadow)}
+
+.note{font-size:12.5px;color:var(--muted);font-style:italic}
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--panel-2);border:1px solid var(--border);color:var(--muted)}
+.pill.p2{background:rgba(232,161,58,.16);color:var(--progress);border-color:transparent}
+.pill.p3{background:rgba(214,69,69,.14);color:var(--danger);border-color:transparent}
+.pill.ok{background:rgba(0,168,107,.16);color:var(--done);border-color:transparent}
+
+.themebtn{position:fixed;top:14px;right:18px;z-index:40;background:var(--panel);border:1px solid var(--border);
+  border-radius:20px;padding:7px 13px;cursor:pointer;font-size:13px;color:var(--text);box-shadow:var(--shadow)}
+
+@media(max-width:900px){
+  nav.side{transform:translateX(-100%);transition:transform .25s}
+  nav.side.show{transform:translateX(0)}
+  main{margin-left:0;padding:0 16px 60px}
+  .grid2,.grid3{grid-template-columns:1fr}
+  .menubtn{display:inline-block}
+}
+.menubtn{display:none;position:fixed;top:14px;left:14px;z-index:41;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:8px 12px;cursor:pointer}
+
+@media print{
+  nav.side,.themebtn,.menubtn,.copy,.progress-wrap{display:none!important}
+  main{margin:0;max-width:100%}
+  article.step .body{max-height:none!important;padding:4px 18px 20px!important}
+  article.step .caret{display:none}
+  .tabpane{display:block!important;border-top:1px solid var(--border)}
+  .tabbar{display:none}
+  pre{white-space:pre-wrap;border:1px solid #999}
+  body{background:#fff;color:#000;font-size:11.5px}
+  section{page-break-inside:avoid}
+  a::after{content:" (" attr(href) ")";font-size:9px;color:#666}
+}
+</style>
+</head>
+<body>
+<button class="menubtn" onclick="document.querySelector('nav.side').classList.toggle('show')">☰</button>
+<button class="themebtn" id="themebtn" onclick="toggleTheme()">🌙 Dark</button>
+
+<div class="wrap">
+<nav class="side">
+  <div class="brand">🇧🇷 BR Financial Aggregator</div>
+  <div class="sub">Plano de Implementação · ECC Protocol</div>
+  <a href="#overview">Overview</a>
+  <a href="#infra">Infra & Versões (LTS)</a>
+  <a href="#auth-user-mgmt">Auth & User Management (JWT)</a>
+  <a href="#input-mensal">Input Mensal (Tabela de Ativos)</a>
+  <a href="#extractor">Contrato JSON do Extrator (LLM)</a>
+  <a href="#api">API — Endpoints</a>
+  <a href="#consolidation">Regras de Consolidação</a>
+  <a href="#depgraph">Grafo de Dependência</a>
+  <div class="grp">Steps — Fase 1 (MVP)</div>
+  <a href="#s0">S0 · Scaffold & Workspace</a>
+  <a href="#s1">S1 · DB Schema & Migrations</a>
+  <a href="#s2">S2 · Go Ledger Core + Auth</a>
+  <a href="#s3">S3 · Ingest + Parser (Go Ledger)</a>
+  <a href="#s4">S4 · Consolidação & Reconciliação</a>
+  <a href="#s5">S5 · XIRR Engine</a>
+  <a href="#s6">S6 · Market Data (Worker Python & Pydantic @latest)</a>
+  <a href="#s7">S7 · Dashboard & Frontend JWT</a>
+  <a href="#s8">S8 · Export</a>
+  <div class="grp">Specs Técnicas</div>
+  <a href="#spec-jwt">Spec: JWT Authentication & User CRUD</a>
+  <a href="#spec-chi-ledger">Spec: Go Ledger Core (go-chi/chi)</a>
+  <a href="#spec-pydantic-worker">Spec: Worker Python (Pydantic @latest & Market Data)</a>
+  <a href="#spec-migrations">Spec: DB Migrations (golang-migrate & Alembic)</a>
+  <a href="#spec-xirr">Spec: XIRR / TIR</a>
+  <a href="#spec-market">Market Data Strategy</a>
+  <a href="#spec-mc">Motor Monte Carlo</a>
+  <a href="#spec-infer">Inferência de Benchmark</a>
+  <div class="grp">Governança</div>
+  <a href="#conventions">Convenções (Commits)</a>
+  <a href="#risks">Registro de Riscos</a>
+  <a href="#success">Critérios de Sucesso</a>
+  <a href="#roadmap">Roadmap</a>
+</nav>
+
+<main>
+<header class="top">
+  <h1>Plano: Brazilian Financial Assets Aggregator</h1>
+  <div class="meta">
+    <span class="version">v3.0.0</span>
+    <span class="date">2026-08-07</span>
+    <span class="objective">Multi-user · Autenticação JWT · Go Chi Framework · Pydantic @latest em Market Data · golang-migrate</span>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-label"><span>Progresso do plano (checklists marcados)</span><span id="progtxt">0 / 0 · 0%</span></div>
+    <div class="progress-track"><div class="progress-fill" id="progfill"></div></div>
+  </div>
+</header>
+
+<!-- OVERVIEW -->
+<section id="overview">
+  <h2>Overview</h2>
+  <p class="lead">Plataforma multi-usuário para acompanhamento e agregação de investimentos brasileiros e globais. Autenticação baseada em JWT (HMAC-SHA256 via <code>golang-jwt/jwt/v5</code>), com gerenciamento completo de ciclo de vida de usuários no <code>ledger-core</code> (registro, atualização, deleção e autenticação). As rotas não possuem identificador do usuário no path, pois o contexto do usuário é <b>extraído diretamente das claims do token JWT (<code>user_id</code>, <code>username</code>, <code>role</code>)</b>.</p>
+
+  <p>O <b>S3 (Ingest + Parser do JSON canônico)</b> é realizado diretamente no <b>ledger-core em Golang (go-chi/chi v5)</b>, mantendo o controle centralizado das posições e staging de extratos no Go. O <b>Worker Python é acionado na etapa S6 (Market Data & Analytics)</b>, onde todos os seus inputs, outputs, domínios e Objetos de Valor (Value Objects - DDD) são rigorosamente validados utilizando <b>Pydantic @latest (v2)</b>.</p>
+
+  <div class="panel" style="border-color:var(--primary)">
+    <b>💡 Definições de Responsabilidade v3.0:</b>
+    <ul class="tasks" style="margin-top:6px">
+      <li><input type="checkbox"> <b>Multi-user com JWT Embedded Context:</b> Rotas limpas sem <code>{user}</code> no path. O <code>user_id</code> é extraído do token JWT pelo middleware de autenticação Chi.</li>
+      <li><input type="checkbox"> <b>Ledger Core em Go com go-chi/chi (v5):</b> Gerencia Auth, CRUD de Usuários, Portfólios, Holdings e o <b>Ingest + Parser do JSON canônico (S3)</b>.</li>
+      <li><input type="checkbox"> <b>Worker Python focado em Market Data & Analytics (S6):</b> O Worker é acionado a partir de Market Data / XIRR / Monte Carlo. Todos os inputs, outputs, entidades de domínio e Objetos de Valor (DDD VOs) do Worker Python possuem schema validator estrito via <b>Pydantic @latest (v2)</b>.</li>
+      <li><input type="checkbox"> <b>Database Migrations Padronizadas:</b> Migrações declarativas via <code>golang-migrate/migrate</code> no core Go e suporte ao Alembic / golang-migrate no Worker Python.</li>
+    </ul>
+  </div>
+  <div class="grid3">
+    <div class="kpi"><div class="n">9</div><div class="l">Steps na Fase 1 (MVP)</div></div>
+    <div class="kpi"><div class="n">10</div><div class="l">Classes de ativo suportadas</div></div>
+    <div class="kpi"><div class="n">7</div><div class="l">Fatores de risco / benchmarks</div></div>
+  </div>
+  <div class="panel">
+    <h3 style="margin-top:0">Protocolo de Planejamento (ECC)</h3>
+    <pre><code>plan → implement → review → verify → remember → improve</code></pre>
+    <ul class="tasks">
+      <li><input type="checkbox"> <b>Plan before you build</b> — sem código sem plano verificado.</li>
+      <li><input type="checkbox"> <b>One commit convention per step</b> — cada step fecha com um commit <a href="https://www.conventionalcommits.org/en/v1.0.0/">Conventional Commits</a>.</li>
+      <li><input type="checkbox"> <b>Security gate</b> — validação de JWT, hashing seguro de senhas (bcrypt/argon2), RLS no PostgreSQL por <code>user_id</code> e OWASP Top 10.</li>
+      <li><input type="checkbox"> <b>Multi Currency</b> — Inputs tanto em BRL quanto USD. Exibição com PTAX atualizado.</li>
+      <li><input type="checkbox"> <b>Input mensal first</b> — a Tabela de Ativos enviada como JSON canônico e reconciliada por usuário.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- INFRA -->
+<section id="infra">
+  <h2>Infra & Versões — pinned (LTS / stable)</h2>
+  <p class="lead">Versões obrigatórias e fixas. PostgreSQL 18.4 e Redis 8.10.0 no <code>docker-compose</code> com healthchecks.</p>
+  <table>
+    <tr><th>Componente</th><th>Versão (pin exato)</th><th>Notas</th></tr>
+    <tr><td>PostgreSQL</td><td><code>postgres:18.4</code></td><td>Database relacional com suporte a RLS multi-tenant por <code>user_id</code>.</td></tr>
+    <tr><td>Redis</td><td><code>redis:8.10.0</code></td><td>Cache de cotações, XIRR e rate limiting. Healthcheck obrigatório.</td></tr>
+    <tr><td>Node.js</td><td><code>v24.19.0</code> (LTS)</td><td>Fixado em <code>.nvmrc</code> e <code>engines</code> do <code>web/</code>.</td></tr>
+    <tr><td>Next.js</td><td><code>16.3</code></td><td>App Router em <code>web/</code>. Suporte a JWT via cookies/auth headers.</td></tr>
+    <tr><td>Tailwind CSS</td><td><code>v4.3</code></td><td>Config CSS-first (v4).</td></tr>
+    <tr><td>Go</td><td><code>1.26.x</code></td><td>Ledger core, auth & ingest JSON. Web framework <code>go-chi/chi v5</code> + <code>golang-jwt/jwt/v5</code> + <code>golang-migrate</code>.</td></tr>
+    <tr><td>Python</td><td><code>3.13</code> (uv/pip)</td><td>Worker analytics/market data. Validadores <code>pydantic &gt;= 2.10.0</code> (inputs, outputs & DDD VOs em Market Data) + <code>alembic</code> / <code>golang-migrate</code>.</td></tr>
+  </table>
+  <div class="sub-h">Layout do workspace</div>
+  <pre><button class="copy" onclick="copyCode(this)">copy</button><code>br-financial-aggregator/          # workspace único
+├── ledger/     # Go — ledger core (go-chi/chi v5, user management, JWT auth, S3 Ingest/Parser, golang-migrate)
+│   ├── cmd/server/main.go
+│   ├── internal/auth/         # JWT generation/verification, password hashing
+│   ├── internal/handler/      # Handlers Chi (auth, users, holdings, portfolios, statements)
+│   ├── internal/parser/       # Ingest & Parser do JSON canônico em Go
+│   └── db/migrations/         # Migrações SQL via golang-migrate
+├── worker/     # Python — S6 Market data, XIRR, analytics, Pydantic v2 schemas & DDD VOs
+│   ├── app/schemas/           # Schemas Pydantic v2 (Inputs, Outputs & DDD Value Objects para Market Data)
+│   └── alembic/               # Migrações Alembic (ou scripts golang-migrate)
+├── web/        # Next.js 16.3 + Tailwind v4.3 (Node v24.19.0) — Login, User Profile, Dashboard
+├── infra/      # docker-compose.yml, init sql, .env.example
+├── Makefile    # matrix: lint / type / build p/ ledger|worker|web
+├── .nvmrc      # v24.19.0
+└── README.md</code></pre>
+</section>
+
+<!-- AUTH & USER MANAGEMENT -->
+<section id="auth-user-mgmt">
+  <h2>Auth & User Management (JWT) <span class="pill ok">MULTI-USER</span></h2>
+  <p class="lead">Arquitetura de autenticação centralizada no <code>ledger-core</code> em Golang. Todas as rotas autenticadas exigem o cabeçalho <code>Authorization: Bearer &lt;token&gt;</code> (ou cookie httpOnly). O middleware Chi valida a assinatura HS256 e injeta o objeto <code>CustomClaims</code> no contexto da requisição (<code>r.Context()</code>).</p>
+
+  <div class="panel">
+    <h3 style="margin-top:0">Modelo de Claims JWT (Golang `golang-jwt/jwt/v5`)</h3>
+    <pre><button class="copy" onclick="copyCode(this)">copy</button><code>type CustomClaims struct {
+	UserID   string `json:"user_id"`
+	Username string `json:"username"`
+	Role     string `json:"role"`
+	jwt.RegisteredClaims
+}</code></pre>
+    <p>O <code>UserID</code> é a chave primária UUID do usuário, garantindo o isolamento multi-tenant nas consultas SQL (<code>WHERE user_id = $1</code>) e nas políticas de RLS no PostgreSQL.</p>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h3 style="margin-top:0">🔑 Operações de Usuário no Backend (Go Ledger)</h3>
+      <ul class="tasks">
+        <li><input type="checkbox"> <b>Registro (<code>POST /api/v1/auth/register</code>):</b> Cria usuário na tabela <code>users</code> com hash de senha seguro (bcrypt cost 12).</li>
+        <li><input type="checkbox"> <b>Login (<code>POST /api/v1/auth/login</code>):</b> Valida credenciais e emite o token JWT com expiração de 15 minutos.</li>
+        <li><input type="checkbox"> <b>Perfil (<code>GET /api/v1/users/me</code>):</b> Retorna os dados do usuário autenticado a partir das claims do token.</li>
+        <li><input type="checkbox"> <b>Atualização (<code>PUT /api/v1/users/me</code>):</b> Permite atualizar nome de usuário, e-mail e alterar senha.</li>
+        <li><input type="checkbox"> <b>Deleção (<code>DELETE /api/v1/users/me</code>):</b> Remove a conta do usuário e realiza expurgo em cascata de seus portfólios, holdings e históricos.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3 style="margin-top:0">💻 Integração com Frontend (Next.js 16.3)</h3>
+      <ul class="tasks">
+        <li><input type="checkbox"> <b>Formulários de Login & Registro:</b> Páginas dedicadas <code>/login</code> e <code>/register</code> com validação no cliente.</li>
+        <li><input type="checkbox"> <b>Armazenamento Seguro:</b> JWT mantido em estado / httpOnly Cookie ou storage seguro com auto-anexação no <code>fetch</code> client-side.</li>
+        <li><input type="checkbox"> <b>Gerenciamento de Conta:</b> Painel do usuário <code>/settings/profile</code> para atualizar informações e deletar a conta.</li>
+        <li><input type="checkbox"> <b>Route Guards:</b> Middleware Next.js protegendo rotas privadas e redirecionando não-autenticados para <code>/login</code>.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- INPUT MENSAL -->
+<section id="input-mensal">
+  <h2>Input Mensal — Tabela de Ativos <span class="pill">CORAÇÃO DO SISTEMA</span></h2>
+  <p class="lead">Um LLM externo converte o extrato no <b>JSON canônico</b> (posição + movimentações). O payload é enviado para o <code>ledger-core</code> em Go (sem <code>{user}</code> na URL, pois o usuário é inferido do token JWT), sofrendo staging, reconciliação e consolidação no portfólio do usuário autenticado.</p>
+  <div class="tabs">
+    <div class="tabbar">
+      <button class="active" onclick="tab(this,'t-pos1')">Posição — Corretora BR</button>
+      <button onclick="tab(this,'t-pos2')">Posição — Corretora Global</button>
+      <button onclick="tab(this,'t-mov1')">Movimentações BR</button>
+      <button onclick="tab(this,'t-mov2')">Movimentações Global</button>
+    </div>
+    <div class="tabpane active" id="t-pos1">
+      <p class="note">Grupos em <b>negrito</b> = subtotais (não são ativos). Colunas: Saldo Bruto, Qtd, Rent. Mês, %CDI Mês.</p>
+      <table>
+        <tr><th>Ativo / Estratégia</th><th class="r">Saldo Bruto</th><th class="r">Qtd</th><th class="r">Rent. Mês</th><th class="r">%CDI</th></tr>
+        <tr><td><b>Pós Fixado</b></td><td class="r">R$ 140.000,00</td><td class="r">—</td><td class="r">1,27%</td><td class="r">109,6%</td></tr>
+        <tr><td>LCA BANCO EXEMPLO A — MAR/2030 · 94%CDI</td><td class="r">R$ 44.000,00</td><td class="r">38</td><td class="r">1,28%</td><td class="r">110,5%</td></tr>
+        <tr><td>LCD BNDES-EXEMPLO — JUL/2035 · 91%CDI</td><td class="r">R$ 36.000,00</td><td class="r">3</td><td class="r">1,24%</td><td class="r">107,0%</td></tr>
+        <tr><td><b>Inflação</b></td><td class="r">R$ 1.100.000,00</td><td class="r">—</td><td class="r">0,41%</td><td class="r">35,4%</td></tr>
+        <tr><td>CDB BANCO EXEMPLO B — AGO/2028 · IPCA+6,95%</td><td class="r">R$ 79.000,00</td><td class="r">57</td><td class="r">0,84%</td><td class="r">72,0%</td></tr>
+        <tr><td>NTN-B — AGO/2026 · IPCA+9,87%</td><td class="r">R$ 87.000,00</td><td class="r">18</td><td class="r">0,81%</td><td class="r">70,0%</td></tr>
+        <tr><td>Tesouro IPCA+ 2035</td><td class="r">R$ 40.000,00</td><td class="r">17,12</td><td class="r">-0,99%</td><td class="r">-85,0%</td></tr>
+        <tr><td><b>Renda Variável Brasil</b></td><td class="r">R$ 480.000,00</td><td class="r">—</td><td class="r">-0,58%</td><td class="r">-49,7%</td></tr>
+        <tr><td>PETR4</td><td class="r">R$ 21.000,00</td><td class="r">506</td><td class="r">13,33%</td><td class="r">1147%</td></tr>
+        <tr><td>ITSA4</td><td class="r">R$ 65.000,00</td><td class="r">4761</td><td class="r">3,14%</td><td class="r">270%</td></tr>
+        <tr><td><b>Fundos Listados</b></td><td class="r">R$ 20.000,00</td><td class="r">—</td><td class="r">-1,25%</td><td class="r">-107%</td></tr>
+        <tr><td>HGLG11</td><td class="r">R$ 7.800,00</td><td class="r">53</td><td class="r">-1,65%</td><td class="r">-142%</td></tr>
+      </table>
+    </div>
+    <div class="tabpane" id="t-pos2">
+      <p class="note">Carteira global em USD. Linhas de grupo/total em <b>negrito</b> = agregados.</p>
+      <table>
+        <tr><th>Ativo</th><th>Ticker</th><th class="r">Qtd</th><th class="r">Preço ($)</th><th class="r">Valor ($)</th></tr>
+        <tr><td>Vanguard Total World Stock ETF</td><td>VT</td><td class="r">14,75007</td><td class="r">155,86</td><td class="r">2.298,95</td></tr>
+        <tr><td>Amazon.com Inc.</td><td>AMZN</td><td class="r">13,79</td><td class="r">271,58</td><td class="r">3.745,09</td></tr>
+        <tr><td>Vale S.A. — ADR</td><td>VALE</td><td class="r">106,72</td><td class="r">15,06</td><td class="r">1.607,21</td></tr>
+        <tr><td>Invesco QQQ Trust</td><td>QQQ</td><td class="r">3</td><td class="r">687,99</td><td class="r">2.063,97</td></tr>
+        <tr><td><b>Cash & Cash Equivalents</b></td><td>—</td><td class="r">—</td><td class="r">—</td><td class="r"><b>39,42</b></td></tr>
+        <tr><td><b>Total do Portfólio</b></td><td></td><td class="r"></td><td class="r"></td><td class="r"><b>17.540,78</b></td></tr>
+      </table>
+    </div>
+    <div class="tabpane" id="t-mov1">
+      <p class="note">"Histórico" é texto livre → o extrator normaliza em <code>type</code>. Sinal do valor = direção do fluxo.</p>
+      <table>
+        <tr><th>Data</th><th>Histórico</th><th class="r">Valor</th><th>type inferido</th></tr>
+        <tr><td>27/07/2026</td><td>COMPRA CDB | CDB EXEMPLO-JUL/2028</td><td class="r">-R$ 3.000,00</td><td>buy</td></tr>
+        <tr><td>14/07/2026</td><td>RENDIMENTOS DE CLIENTES HGLG11 S/53</td><td class="r">R$ 58,30</td><td>dividend</td></tr>
+        <tr><td>01/07/2026</td><td>JUROS S/CAPITAL DE CLIENTES ITSA4</td><td class="r">R$ 94,66</td><td>jscp</td></tr>
+        <tr><td>01/07/2026</td><td>REPASSE DE JUROS TESOURO DIRETO</td><td class="r">R$ 69,97</td><td>interest</td></tr>
+        <tr><td>01/07/2026</td><td>IRRF S/TÍTULOS TESOURO DIRETO</td><td class="r">-R$ 10,69</td><td>tax</td></tr>
+        <tr><td>17/07/2026</td><td>Transferência recebida da conta digital</td><td class="r">R$ 3.000,00</td><td>deposit</td></tr>
+        <tr><td>21/07/2026</td><td>OPERAÇÕES EM BOLSA — NOTA N°xxxxx</td><td class="r">-R$ 155,20</td><td>fee/settlement</td></tr>
+      </table>
+    </div>
+    <div class="tabpane" id="t-mov2">
+      <table>
+        <tr><th>Data</th><th>Histórico</th><th class="r">Valor</th><th>type</th></tr>
+        <tr><td>08/07/2026</td><td>Compra VXUS — 7,50 @ $84,73</td><td class="r">-$635,46</td><td>buy</td></tr>
+        <tr><td>06/07/2026</td><td>Remessa de Câmbio Padrão Investimento BR-EUA</td><td class="r">+$653,83</td><td>deposit</td></tr>
+        <tr><td>01/07/2026</td><td>Crédito dividendos NOBL</td><td class="r">+$4,86</td><td>dividend</td></tr>
+        <tr><td>01/07/2026</td><td>Retenção Impostos sobre Dividendos NOBL</td><td class="r">-$1,46</td><td>tax</td></tr>
+        <tr><td>16/07/2026</td><td>Stock lending accrued interest</td><td class="r">+$0,12</td><td>interest</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- EXTRACTOR JSON CONTRACT -->
+<section id="extractor">
+  <h2>Contrato JSON do Extrator (prompt p/ LLM)</h2>
+  <p class="lead">O parser no <code>ledger-core</code> em Go recebe este contrato, realiza a validação de tipos, normaliza números e persiste as posições em staging.</p>
+  <div class="tabs">
+    <div class="tabbar">
+      <button class="active" onclick="tab(this,'jx-a')">assets.json</button>
+      <button onclick="tab(this,'jx-m')">movements.json</button>
+      <button onclick="tab(this,'jx-p')">Prompt de extração</button>
+    </div>
+    <div class="tabpane active" id="jx-a">
+      <pre><button class="copy" onclick="copyCode(this)">copy</button><code>{
+  "reference_date": "20260731",          // YYYYMMDD no path da rota
+  "portfolio_name": "corretora-br",
+  "base_currency": "BRL",
+  "assets": [
+    {
+      "group": "Inflação",                // categoria da corretora
+      "name": "CDB BANCO EXEMPLO B-AGO/2028-IPCA+6.95%",
+      "asset_class": "cdb",               // enum AssetClass
+      "position_model": "value",          // "value" | "quantity"
+      "ticker_or_code": null,
+      "quantity": 57,                     // informativo p/ value-based
+      "gross_value": 79000.00,            // fonte da verdade p/ value-based
+      "currency": "BRL",
+      "month_return_pct": 0.84,
+      "cdi_pct": 72.0
+    },
+    {
+      "group": "Renda Variável Brasil",
+      "name": "PETR4",
+      "asset_class": "acao",
+      "position_model": "quantity",
+      "ticker_or_code": "PETR4",
+      "quantity": 506,
+      "gross_value": 21000.00,
+      "currency": "BRL",
+      "month_return_pct": 13.33,
+      "cdi_pct": 1147.0
+    }
+  ],
+  "subtotals": [
+    { "group": "Inflação", "gross_value": 1100000.00 },
+    { "group": "Renda Variável Brasil", "gross_value": 480000.00 }
+  ],
+  "portfolio_total": 2260000.00
+}</code></pre>
+    </div>
+    <div class="tabpane" id="jx-m">
+      <pre><button class="copy" onclick="copyCode(this)">copy</button><code>{
+  "reference_date": "20260731",
+  "portfolio_name": "corretora-br",
+  "base_currency": "BRL",
+  "movements": [
+    { "date": "2026-07-27", "raw": "COMPRA CDB|CDB EXEMPLO-JUL/2028",
+      "type": "buy",       "asset_hint": "CDB EXEMPLO-JUL/2028",
+      "amount": -3000.00,  "fees": null,  "currency": "BRL" },
+
+    { "date": "2026-07-14", "raw": "RENDIMENTOS DE CLIENTES HGLG11 S/53",
+      "type": "dividend",  "asset_hint": "HGLG11",
+      "amount": 58.30,     "fees": null,  "currency": "BRL" },
+
+    { "date": "2026-07-01", "raw": "JUROS S/CAPITAL DE CLIENTES ITSA4",
+      "type": "jscp",      "asset_hint": "ITSA4", "amount": 94.66, "currency": "BRL" },
+
+    { "date": "2026-07-08", "raw": "Compra VXUS - 7,50 @ $84,73",
+      "type": "buy",       "asset_hint": "VXUS", "quantity": 7.50,
+      "unit_price": 84.73, "amount": -635.46, "currency": "USD" }
+  ]
+}</code></pre>
+    </div>
+    <div class="tabpane" id="jx-p">
+      <pre><button class="copy" onclick="copyCode(this)">copy</button><code>Você é um extrator de extratos de corretora. Converta a tabela colada
+no JSON canônico (schema assets/movements). Regras:
+1. Linhas em NEGRITO são SUBTOTAIS de grupo -> vão em "subtotals", nunca "assets".
+2. "—" ou vazio -> null. Números BR (1.234,56) e US (1,234.56) -> float puro.
+3. Prefixo R$ -> currency BRL; prefixo $ -> USD. Registre em "currency".
+4. asset_class por regex do nome:
+   LCA|LCD->lca/lcd ; CDB->cdb ; DEB->debenture ; NTN-B|Tesouro->tesouro ;
+   ticker XXXX[0-9]$ ->acao ; XXXX11$ ->fii ; ETF/ADR US ->etf/bdr ;
+   "FIC|FIM|FIA|Prev"->fundo ; senão ->outro.
+5. position_model: "quantity" p/ ação|fii|etf|bdr ; "value" p/ renda fixa,
+   Tesouro, debênture, fundos e qualquer coisa sem preço unitário confiável.
+6. movements.type: COMPRA->buy ; VENDA->sell ; RENDIMENTOS|dividendos->dividend ;
+   JUROS S/CAPITAL->jscp ; REPASSE JUROS|Tesouro juros->interest ;
+   IRRF|Retenção Imposto->tax ; Transferência|Remessa Câmbio->deposit ;
+   Resgate->withdrawal ; Taxa|emolumento|OPERAÇÕES EM BOLSA->fee.
+7. amount MANTÉM o sinal do extrato (negativo=saída, positivo=entrada).
+Devolva SOMENTE JSON válido.</code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- API -->
+<section id="api">
+  <h2>API — Endpoints (v3.0 - Clean Multi-User JWT Routes)</h2>
+  <p class="lead">Removidas todas as menções a <code>{user}</code> das URLs. O <code>user_id</code> é resolvido implicitamente através do token de acesso JWT enviado no header HTTP <code>Authorization: Bearer &lt;token&gt;</code>.</p>
+  <div class="panel">
+    <div class="sub-h">Autenticação & Gerenciamento de Usuários (Ledger Core - Go)</div>
+    <table>
+      <tr><th>Método</th><th>Rota</th><th>Descrição</th></tr>
+      <tr><td>POST</td><td><code>/api/v1/auth/register</code></td><td>Registra um novo usuário (username, email, password). Retorna 201 Created.</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/auth/login</code></td><td>Valida credenciais e emite o token JWT com claims customizadas.</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/users/me</code></td><td>Retorna perfil do usuário autenticado. Exige JWT.</td></tr>
+      <tr><td>PUT</td><td><code>/api/v1/users/me</code></td><td>Atualiza dados cadastrais ou senha do usuário autenticado. Exige JWT.</td></tr>
+      <tr><td>DELETE</td><td><code>/api/v1/users/me</code></td><td>Remove a conta do usuário e todos os seus recursos associados. Exige JWT.</td></tr>
+    </table>
+
+    <div class="sub-h">Input Mensal & Ingest (Ledger Core - Go)</div>
+    <table>
+      <tr><th>Método</th><th>Rota</th><th>Descrição</th></tr>
+      <tr><td>POST</td><td><code>/api/v1/portfolios/{portfolio_name}/{YYYYMMDD}/assets</code></td><td>Envia posição consolidada (assets.json). Ingest/Parser em Go. Staging status <code>pending</code>.</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/portfolios/{portfolio_name}/{YYYYMMDD}/mov</code></td><td>Envia movimentações do mês (movements.json). Parser em Go.</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/portfolios/{portfolio_name}/{YYYYMMDD}/reconciliation</code></td><td>Diff: posição anterior + mov = posição atual. Sugere causas.</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/portfolios/{portfolio_name}/{YYYYMMDD}/confirm</code></td><td>Consolida (via UoW do ledger). Idempotente.</td></tr>
+    </table>
+
+    <div class="sub-h">Portfolios & Holdings (Ledger Core - Go)</div>
+    <table>
+      <tr><td>GET</td><td><code>/api/v1/portfolios</code></td><td>Lista portfólios do usuário autenticado</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/portfolios</code></td><td>Cria novo portfólio para o usuário autenticado</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/holdings</code></td><td>Holdings do usuário com XIRR cacheado</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/holdings/{id}/transactions</code></td><td>Transações do holding do usuário</td></tr>
+    </table>
+
+    <div class="sub-h">Market Data & Analytics (Worker Python - Pydantic @latest)</div>
+    <table>
+      <tr><th>Método</th><th>Rota</th><th>Descrição</th></tr>
+      <tr><td>GET</td><td><code>/api/v1/benchmarks/current</code> · <code>/historical</code></td><td>SELIC, PTAX, IBOV, IFIX, S&P, NASDAQ, FedFunds (Pydantic validated)</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/holdings/{id}/xirr</code></td><td>Calcula XIRR do ativo (Pydantic validated)</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/portfolios/{id}/xirr</code></td><td>Calcula XIRR do portfólio (Pydantic validated)</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/holdings/{id}/cash-flows</code></td><td>Tabela de cash flows para auditoria</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/portfolios/{id}/monte-carlo</code> <span class="pill p2">F2</span></td><td>Simulação Monte Carlo (7 fatores) (Pydantic validated)</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/export/{format}</code></td><td>Exporta dados do usuário em csv | xlsx | pdf</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- CONSOLIDATION RULES -->
+<section id="consolidation">
+  <h2>Regras de Consolidação (ativo pré-existente, novo ativo, Tesouro sem cotas)</h2>
+  <p class="lead">Distinção central mantida: <b>quantity-based</b> vs <b>value-based</b>. Todo o isolamento é mantido no escopo do usuário autenticado.</p>
+  <div class="grid2">
+    <div class="panel">
+      <h3 style="margin-top:0">📦 quantity-based <span class="pill">ações · FIIs · ETFs · BDRs</span></h3>
+      <p>Match por <code>ticker_or_code</code> e <code>user_id</code>. Posição = quantidade × preço.</p>
+      <ul class="tasks">
+        <li><input type="checkbox"> <b>Novo ativo:</b> cria holding para o usuário + 1ª transaction <code>buy</code>.</li>
+        <li><input type="checkbox"> <b>Já existe + nova compra:</b> adiciona transaction ao holding do usuário e recalcula preço médio ponderado.</li>
+      </ul>
+      <pre><code>novo_avg = (qtd_ant*avg_ant + qtd_nova*preço_nova)
+           / (qtd_ant + qtd_nova)</code></pre>
+    </div>
+    <div class="panel">
+      <h3 style="margin-top:0">💰 value-based <span class="pill">CDB · LCA/LCD · Tesouro · deb · fundos</span></h3>
+      <p>Sem cotas discretas confiáveis. <b>Valor financeiro é a fonte da verdade</b>; <code>quantity</code> é informativo.</p>
+      <ul class="tasks">
+        <li><input type="checkbox"> <b>Novo ativo:</b> match por <code>normalize(name) + portfolio_name + user_id</code> → cria holding.</li>
+        <li><input type="checkbox"> <b>Já existe + novo aporte:</b> adiciona transaction; posição vem do <code>gross_value</code> do statement.</li>
+        <li><input type="checkbox"> <b>Valorização mensal:</b> vem do <code>gross_value</code> e <code>month_return_pct</code> informados no extrato.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- DEP GRAPH -->
+<section id="depgraph">
+  <h2>Grafo de Dependência (Fase 1 - v3.0)</h2>
+  <p class="lead">Ordem topológica de implementação. S3 Ingest/Parser no Ledger Core Go; Worker Python ativado em S6 Market Data & Analytics.</p>
+  <div class="mermaid">
+flowchart TD
+  S0["S0 · Scaffold & Workspace"] --> S1["S1 · DB Schema & Migrations"]
+  S1 --> S2["S2 · Go Ledger Core + Chi Router + JWT Auth & User CRUD"]
+  S2 --> S3["S3 · Ingest + Parser JSON (Go Ledger Core)"]
+  S3 --> S4["S4 · Consolidação & Reconciliação (Go Ledger Core)"]
+  S4 --> S5["S5 · XIRR Engine (Worker Python)"]
+  S2 --> S6["S6 · Market Data (Worker Python & Pydantic @latest)"]
+  S4 --> S7["S7 · Dashboard & Frontend JWT/User Management"]
+  S5 --> S7
+  S6 --> S7
+  S7 --> S8["S8 · Export"]
+  S5 --> S8
+  classDef mvp fill:#0056b3,stroke:#003c80,color:#fff;
+  class S0,S1,S2,S3,S4,S5,S6,S7,S8 mvp;
+  </div>
+</section>
+
+<!-- ============ STEPS ============ -->
+
+<article class="step open" id="s0">
+  <div class="head" onclick="toggleStep(this)">
+    <span class="caret">▶</span><span class="id">S0</span>
+    <span class="title">Scaffold & Workspace (go-chi, jwt/v5, Pydantic v2, Makefile)</span>
+    <span class="badge pending">pending</span>
+  </div>
+  <div class="body">
+    <div class="deps"><span class="dep">nenhuma — step raiz</span></div>
+    <div class="brief"><b>Context brief:</b> Workspace único com <code>ledger/</code> (Go c/ <code>go-chi/chi/v5</code>, <code>golang-jwt/jwt/v5</code>, <code>golang-migrate</code>), <code>worker/</code> (Python c/ <code>pydantic&gt;=2.10</code> e <code>alembic</code>), <code>web/</code> (Next.js 16.3). docker-compose com Postgres 18.4 + Redis 8.10.0.</div>
+    <div class="commit"><b>Commit:</b> <code>chore(workspace): scaffold monorepo com go-chi, jwt/v5 e pydantic v2</code></div>
+    <div class="sub-h">Tasks</div>
+    <ul class="tasks">
+      <li><input type="checkbox" checked> Configurar <code>ledger/go.mod</code> com <code>github.com/go-chi/chi/v5</code> e <code>github.com/golang-jwt/jwt/v5</code></li>
+      <li><input type="checkbox"> Configurar <code>worker/pyproject.toml</code> com <code>pydantic&gt;=2.10.0</code> e <code>alembic</code> / <code>golang-migrate</code> toolset</li>
+      <li><input type="checkbox" checked> <code>infra/docker-compose.yml</code> com Postgres 18.4 e Redis 8.10.0 (healthchecks)</li>
+      <li><input type="checkbox"> <code>.env.example</code> com <code>JWT_SECRET</code>, <code>DB_URL</code>, <code>REDIS_URL</code></li>
+      <li><input type="checkbox"> <b>Makefile matrix</b>: <code>make lint</code>, <code>make type</code>, <code>make build</code> em ledger|worker|web</li>
+    </ul>
+    <div class="sub-h">Verificação (smoke)</div>
+    <pre><button class="copy" onclick="copyCode(this)">copy</button><code>make up && docker compose -f infra/docker-compose.yml ps
+make lint && make type && make build</code></pre>
+    <div class="exit"><b>Exit criteria:</b> Containers healthy; dependências e matrix verdes nos 3 projetos.</div>
+    <div class="rollback"><b>Rollback:</b> <code>make down -v</code> e reverter workspace.</div>
+  </div>
+</article>
+
+<article class="step" id="s1">
+  <div class="head" onclick="toggleStep(this)">
+    <span class="caret">▶</span><span class="id">S1</span>
+    <span class="title">Database Schema & Migrations (golang-migrate)</span>
+    <span class="badge pending">pending</span>
+  </div>
+  <div class="body">
+    <div class="deps"><span class="dep">S0</span></div>
+    <div class="brief"><b>Context brief:</b> Criação das tabelas relacionais com <code>golang-migrate/migrate</code>. Inclui suporte completo a múltiplos usuários com tabela <code>users</code> e FK <code>user_id</code> em <code>portfolios</code>, <code>holdings</code> e <code>monthly_statements</code>. Políticas de RLS para segregação por usuário.</div>
+    <div class="commit"><b>Commit:</b> <code>feat(ledger): migrations com golang-migrate (users, portfolios, holdings, statements)</code></div>
+    <div class="sub-h">Tasks</div>
+    <ul class="tasks">
+      <li><input type="checkbox"> Tabela <code>users</code>: <code>id</code> (UUID), <code>username</code> (unique), <code>email</code> (unique), <code>password_hash</code>, <code>role</code>, <code>created_at</code>, <code>updated_at</code></li>
+      <li><input type="checkbox"> Migrações via <code>golang-migrate</code> para <code>portfolios</code>, <code>holdings</code>, <code>transactions</code>, <code>monthly_statements</code></li>
+      <li><input type="checkbox"> Índices compostos: <code>(user_id, portfolio_name)</code> em portfolios e <code>(user_id, reference_date)</code> em statements</li>
+      <li><input type="checkbox"> RLS no PostgreSQL vinculada ao <code>user_id</code> do contexto da sessão</li>
+      <li><input type="checkbox"> Script / Makefile target <code>make migrate-up</code> e <code>make migrate-down</code></li>
+    </ul>
+    <div class="sub-h">Verificação</div>
+    <pre><button class="copy" onclick="copyCode(this)">copy</button><code>make migrate-up && make migrate-down-1 && make migrate-up
+psql "$DB_URL" -c "\d users"</code></pre>
+    <div class="exit"><b>Exit criteria:</b> Migrações reversíveis executadas com sucesso via <code>golang-migrate</code>; tabela <code>users</code> e chaves estrangeiras <code>user_id</code> configuradas.</div>
+    <div class="rollback"><b>Rollback:</b> <code>migrate down</code> para desfazer alterações.</div>
+  </div>
+</article>
+
+<article class="step" id="s2">
+  <div class="head" onclick="toggleStep(this)">
+    <span class="caret">▶</span><span class="id">S2</span>
+    <span class="title">Go Ledger Core + Chi Router + JWT Auth & User CRUD</span>
+    <span class="badge pending">pending</span>
+  </div>
+  <div class="body">
+    <div class="deps"><span class="dep">S1</span></div>
+    <div class="brief"><b>Context brief:</b> Roteador <code>go-chi/chi (v5)</code> com middleware de validação JWT (<code>golang-jwt/jwt/v5</code>). Módulo de autenticação e endpoints de CRUD de usuário (Register, Login, GET/PUT/DELETE /api/v1/users/me). Lógica de holdings/transactions com isolamento por usuário.</div>
+    <div class="commit"><b>Commit:</b> <code>feat(ledger): go-chi router, jwt auth middleware e user management CRUD</code></div>
+    <div class="sub-h">Tasks</div>
+    <ul class="tasks">
+      <li><input type="checkbox" checked> Implementar <code>GenerateToken</code> e <code>VerifyToken</code> usando <code>golang-jwt/jwt/v5</code> com <code>CustomClaims</code></li>
+      <li><input type="checkbox" checked> Middleware Chi <code>JWTAuthMiddleware</code> para validar token Bearer e extrair claims no contexto (<code>r.Context()</code>)</li>
+      <li><input type="checkbox" checked> Handler de Autenticação: <code>POST /api/v1/auth/register</code> e <code>POST /api/v1/auth/login</code></li>
+      <li><input type="checkbox"> Handler de Usuário: <code>GET /api/v1/users/me</code>, <code>PUT /api/v1/users/me</code> e <code>DELETE /api/v1/users/me</code></li>
+      <li><input type="checkbox" checked> Handlers de Portfólios e Holdings isolados por <code>user_id</code> extraído do JWT</code></li>
+    </ul>
+    <div class="sub-h">Verificação (smoke)</div>
+    <pre><button class="copy" onclick="copyCode(this)">copy</button><code># 1. Register
+curl -X POST localhost:8080/api/v1/auth/register -d '{"username":"john","email":"john@ex.com","password":"secretpassword"}'
+# 2. Login -> Obter Token
+TOKEN=$(curl -s -X POST localhost:8080/api/v1/auth/login -d '{"username":"john","password":"secretpassword"}' | jq -r .token)
+# 3. GET /me
+curl -H "Authorization: Bearer $TOKEN" localhost:8080/api/v1/users/me</code></pre>
+    <div class="exit"><b>Exit criteria:</b> Registro, login, obtenção de token JWT e operações de usuário funcionando; middleware Chi protegendo rotas privadas sem <code>{user}</code> na URL.</div>
+    <div class="rollback"><b>Rollback:</b> Reverter commits do servidor Go.</div>
+  </div>
+</article>
+
+<article class="step" id="s3">
+  <div class="head" onclick="toggleStep(this)">
+    <span class="caret">▶</span><span class="id">S3</span>
+    <span class="title">Ingest + Parser do JSON canônico (Go Ledger Core)</span>
+    <span class="badge pending">pending</span>
+  </div>
+  <div class="body">
+    <div class="deps"><span class="dep">S2</span></div>
+    <div class="brief"><b>Context brief:</b> Parser e Ingest implementados em Golang no <code>ledger-core</code> (go-chi/chi v5). Recebe <code>assets.json</code> e <code>movements.json</code> nas rotas <code>/api/v1/portfolios/{portfolio_name}/{YYYYMMDD}/assets|mov</code>. Valida os payloads com structs Go, normaliza números BR/US (ex: <code>1.234,56</code> → float64), separa subtotais de ativos e persiste em <code>monthly_statements</code> (raw + parsed) em staging (status <code>pending</code>).</div>
+    <div class="commit"><b>Commit:</b> <code>feat(ledger): ingest e validação do JSON canônico de statements em Go</code></div>
+    <div class="sub-h">Tasks</div>
+    <ul class="tasks">
+      <li><input type="checkbox"> Structs Go para deserialização de <code>AssetsPayload</code> e <code>MovementsPayload</code></li>
+      <li><input type="checkbox"> Normalizador de valores numéricos em Go (formatação BR/US para float64)</li>
+      <li><input type="checkbox"> Separação automática de subtotais de grupo dos ativos individuais em Go</li>
+      <li><input type="checkbox"> Inferência de fallback para <code>asset_class</code> e <code>position_model</code> em Go</li>
+      <li><input type="checkbox"> Persistência no PostgreSQL em <code>monthly_statements</code> associado ao <code>user_id</code> (status <code>pending</code>)</li>
+    </ul>
+    <div class="sub-h">Verificação (smoke)</div>
+    <pre><button class="copy" onclick="copyCode(this)">copy</button><code>curl -X POST localhost:8080/api/v1/portfolios/corretora-br/20260731/assets \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" -d @fixtures/assets.json | jq .status</code></pre>
+    <div class="exit"><b>Exit criteria:</b> Ingest e parsing em Go salvando dados em staging no PostgreSQL com status <code>pending</code> vinculados ao <code>user_id</code> autenticado.</div>
+    <div class="rollback"><b>Rollback:</b> Deletar registros pending de staging.</div>
+  </div>
+</article>
+
+<article class="step" id="s4">
+  <div class="head" onclick="toggleStep(this)">
+    <span class="caret">▶</span><span class="id">S4</span>
+    <span class="title">Consolidação & Reconciliação</span>
+    <span class="badge pending">pending</span>
+  </div>
+  <div class="body">
+    <div class="deps"><span class="dep">S3</span></div>
+    <div class="brief"><b>Context brief:</b> Motor de reconciliação no <code>ledger-core</code> comparando saldo prévio + movimentos com posição reportada. Consolidação atômica via Unit of Work no <code>ledger-core</code> no contexto do usuário autenticado.</div>
+    <div class="commit"><b>Commit:</b> <code>feat(ledger): reconciliação mensal e consolidação multi-tenant em Go</code></div>
+    <div class="sub-h">Tasks</div>
+    <ul class="tasks">
+      <li><input type="checkbox"> Algoritmo de diff de posição por <code>user_id</code> em Go</li>
+      <li><input type="checkbox"> Sugestão automática de divergências (splits, rendimentos não lançados)</li>
+      <li><input type="checkbox"> Endpoint <code>GET /api/v1/portfolios/{portfolio_name}/{YYYYMMDD}/reconciliation</code></li>
+      <li><input type="checkbox"> Endpoint <code>POST /api/v1/portfolios/{portfolio_name}/{YYYYMMDD}/confirm</code> (idempotente via UoW Go)</li>
+    </ul>
+    <div class="sub-h">Verificação (smoke)</div>
+    <pre><button class="copy" onclick="copyCode(this)">copy</button><code>curl -H "Authorization: Bearer $TOKEN" localhost:8080/api/v1/portfolios/corretora-br/20260731/reconciliation
+curl -H "Authorization: Bearer $TOKEN" -X POST localhost:8080/api/v1/portfolios/corretora-br/20260731/confirm</code></pre>
+    <div class="exit"><b>Exit criteria:</b> Reconciliação e consolidação executadas no Go Ledger Core com isolamento total entre usuários.</div>
+    <div class="rollback"><b>Rollback:</b> Rollback na transação DB de consolidação.</div>
+  </div>
+</article>
+
+<article class="step" id="s5">
+  <div class="head" onclick="toggleStep(this)">
+    <span class="caret">▶</span><span class="id">S5</span>
+    <span class="title">XIRR Engine (Worker Python)</span>
+    <span class="badge pending">pending</span>
+  </div>
+  <div class="body">
+    <div class="deps"><span class="dep">S4</span></div>
+    <div class="brief"><b>Context brief:</b> Motor de cálculo XIRR em Python no <code>worker</code> utilizando <code>pyxirr</code> com fallback numpy. Auditoria salva em <code>xirr_calculations</code> vinculada ao <code>user_id</code>.</div>
+    <div class="commit"><b>Commit:</b> <code>feat(worker): motor de XIRR por holding e portfolio com suporte a JWT</code></div>
+    <div class="sub-h">Tasks</div>
+    <ul class="tasks">
+      <li><input type="checkbox"> Construção da tabela de cash flows (saídas negativas, entradas positivas, venda fictícia)</li>
+      <li><input type="checkbox"> Cálculo de XIRR por holding (<code>POST /api/v1/holdings/{id}/xirr</code>) e por portfólio (<code>POST /api/v1/portfolios/{id}/xirr</code>)</li>
+      <li><input type="checkbox"> Invalidação e atualização de cache do XIRR no Redis</li>
+    </ul>
+    <div class="sub-h">Verificação (smoke)</div>
+    <pre><button class="copy" onclick="copyCode(this)">copy</button><code>curl -H "Authorization: Bearer $TOKEN" -X POST localhost:8000/api/v1/holdings/$HOLDING_ID/xirr | jq .xirr_value</code></pre>
+    <div class="exit"><b>Exit criteria:</b> XIRR confere com planilha Excel em 4 casas decimais.</div>
+    <div class="rollback"><b>Rollback:</b> Limpeza de cache Redis.</div>
+  </div>
+</article>
+
+<article class="step" id="s6">
+  <div class="head" onclick="toggleStep(this)">
+    <span class="caret">▶</span><span class="id">S6</span>
+    <span class="title">Market Data — statement-anchored (Worker Python & Pydantic @latest)</span>
+    <span class="badge pending">pending</span>
+  </div>
+  <div class="body">
+    <div class="deps"><span class="dep">S2</span></div>
+    <div class="brief"><b>Context brief:</b> O Worker em Python é acionado para obter e processar séries temporais de Market Data e Benchmarks (BCB, yfinance, FRED). <b>Todas as rotas, inputs, outputs, entidades de domínio e Objetos de Valor (DDD Value Objects) no Worker Python possuem schema validator estrito via Pydantic @latest (v2)</b>.</div>
+    <div class="commit"><b>Commit:</b> <code>feat(worker): market data com Pydantic v2 schemas e DDD Value Objects</code></div>
+    <div class="sub-h">Tasks</div>
+    <ul class="tasks">
+      <li><input type="checkbox"> Validação de inputs/outputs e Value Objects DDD com Pydantic v2 (<code>MarketDataRequestSchema</code>, <code>BenchmarkSeriesVO</code>, <code>QuotePointVO</code>)</li>
+      <li><input type="checkbox"> Ingestão de séries de benchmarks (SELIC, PTAX, IBOVESPA, IFIX, S&P 500, NASDAQ, Fed Funds)</li>
+      <li><input type="checkbox"> Interpolação diária entre âncoras de statements</li>
+      <li><input type="checkbox"> Endpoint <code>GET /api/v1/benchmarks/current</code> e <code>historical</code> (respostas validadas por Pydantic v2)</li>
+    </ul>
+    <div class="sub-h">Verificação (smoke)</div>
+    <pre><button class="copy" onclick="copyCode(this)">copy</button><code>curl localhost:8000/api/v1/benchmarks/current | jq .</code></pre>
+    <div class="exit"><b>Exit criteria:</b> Inputs, outputs e objetos de domínio do Worker Python validados por Pydantic @latest; cotações e benchmarks persistidos.</div>
+    <div class="rollback"><b>Rollback:</b> Manter âncoras dos extratos.</div>
+  </div>
+</article>
+
+<article class="step" id="s7">
+  <div class="head" onclick="toggleStep(this)">
+    <span class="caret">▶</span><span class="id">S7</span>
+    <span class="title">Dashboard & Frontend JWT Integration (Next.js 16.3 / Tailwind v4.3)</span>
+    <span class="badge pending">pending</span>
+  </div>
+  <div class="body">
+    <div class="deps"><span class="dep">S4</span><span class="dep">S5</span><span class="dep">S6</span></div>
+    <div class="brief"><b>Context brief:</b> Frontend em Next.js 16.3 + Tailwind v4.3. Telas de Login, Registro e Gerenciamento de Perfil (update/delete). Interceptor de fetch para anexar token JWT no header. Dashboard de consolidação com gráficos Plotly e upload dos JSONs.</div>
+    <div class="commit"><b>Commit:</b> <code>feat(web): interface de auth/user CRUD e dashboard consolidado JWT</code></div>
+    <div class="sub-h">Tasks</div>
+    <ul class="tasks">
+      <li><input type="checkbox"> Telas de Login (<code>/login</code>) e Cadastro (<code>/register</code>)</li>
+      <li><input type="checkbox"> Tela de Perfil do Usuário (<code>/settings/profile</code>) para alterar senha e deletar conta</li>
+      <li><input type="checkbox"> Contexto de Autenticação (AuthProvider) com armazenamento e refresh de JWT</li>
+      <li><input type="checkbox"> Dashboard principal com resumo de patrimônio, alocação e cálculo de XIRR</li>
+      <li><input type="checkbox"> Interface de Upload e Reconciliação Mensal de Extratos</li>
+    </ul>
+    <div class="sub-h">Verificação (smoke)</div>
+    <pre><button class="copy" onclick="copyCode(this)">copy</button><code>cd web && npm run lint && npm run build</code></pre>
+    <div class="exit"><b>Exit criteria:</b> Fluxo completo de auth (registro, login, edição, logout, deleção) e dashboard funcionando no navegador.</div>
+    <div class="rollback"><b>Rollback:</b> Reverter compilação do Next.js.</div>
+  </div>
+</article>
+
+<article class="step" id="s8">
+  <div class="head" onclick="toggleStep(this)">
+    <span class="caret">▶</span><span class="id">S8</span>
+    <span class="title">Export (CSV / XLSX / PDF Multi-Tenant)</span>
+    <span class="badge pending">pending</span>
+  </div>
+  <div class="body">
+    <div class="deps"><span class="dep">S5</span><span class="dep">S7</span></div>
+    <div class="brief"><b>Context brief:</b> Geração de relatórios nos formatos CSV, XLSX e PDF para o usuário autenticado. Rota <code>GET /api/v1/export/{format}</code>.</div>
+    <div class="commit"><b>Commit:</b> <code>feat(worker): export de relatórios em CSV, XLSX e PDF com suporte a JWT</code></div>
+    <div class="sub-h">Tasks</div>
+    <ul class="tasks">
+      <li><input type="checkbox"> Endpoint <code>GET /api/v1/export/csv</code>, <code>xlsx</code>, <code>pdf</code></li>
+      <li><input type="checkbox"> Geração de relatórios tabulares e PDFs formatados com resumo e cash-flows</li>
+    </ul>
+    <div class="sub-h">Verificação (smoke)</div>
+    <pre><button class="copy" onclick="copyCode(this)">copy</button><code>curl -H "Authorization: Bearer $TOKEN" -o export.xlsx "localhost:8000/api/v1/export/xlsx" && file export.xlsx</code></pre>
+    <div class="exit"><b>Exit criteria:</b> Relatórios exportados corretamente para o usuário autenticado.</div>
+    <div class="rollback"><b>Rollback:</b> Reverter handler de export.</div>
+  </div>
+</article>
+
+<!-- ============ SPECS ============ -->
+
+<section id="spec-jwt">
+  <h2>Spec: JWT Authentication & User CRUD</h2>
+  <p class="lead">Especificação detalhada do ciclo de vida de tokens JWT e das operações de gerenciamento de usuários no <code>ledger-core</code>.</p>
+
+  <div class="tabs">
+    <div class="tabbar">
+      <button class="active" onclick="tab(this,'jwt-code')">Snippet Golang JWT (v5)</button>
+      <button onclick="tab(this,'jwt-flow')">Fluxo de Autenticação</button>
+      <button onclick="tab(this,'jwt-crud')">Endpoints User CRUD</button>
+    </div>
+
+    <div class="tabpane active" id="jwt-code">
+      <pre><button class="copy" onclick="copyCode(this)">copy</button><code>package main
+
+import (
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+)
+
+// Define a secret key (Keep this in environment variables in production!)
+var jwtSecret = []byte("your-highly-secure-secret-key")
+
+// CustomClaims defines the structure of your payload data
+type CustomClaims struct {
+	UserID   string `json:"user_id"`
+	Username string `json:"username"`
+	Role     string `json:"role"`
+	jwt.RegisteredClaims
+}
+
+// GenerateToken creates a signed JWT string valid for 15 minutes
+func GenerateToken(userID, username, role string) (string, error) {
+	claims := CustomClaims{
+		UserID:   userID,
+		Username: username,
+		Role:     role,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			NotBefore: jwt.NewNumericDate(time.Now()),
+			Issuer:    "braff-ledger-core",
+		},
+	}
+
+	// Create token with HS256 algorithm and claims
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Sign the token with our secret
+	return token.SignedString(jwtSecret)
+}
+
+// VerifyToken parses, validates the signature, and extracts claims from a token string
+func VerifyToken(tokenString string) (*CustomClaims, error) {
+	// Parse the token using our custom claims structure
+	token, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(t *jwt.Token) (interface{}, error) {
+		// Crucial security step: Always validate the signing method before returning the key
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		return jwtSecret, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Extract and validate the claims
+	if claims, ok := token.Claims.(*CustomClaims); ok && token.Valid {
+		return claims, nil
+	}
+
+	return nil, errors.New("invalid token claims")
+}</code></pre>
+    </div>
+
+    <div class="tabpane" id="jwt-flow">
+      <ul class="tasks">
+        <li><input type="checkbox"> <b>Login:</b> O usuário envia credenciais em <code>POST /api/v1/auth/login</code>. A senha é verificada contra o hash armazenado no PostgreSQL (bcrypt).</li>
+        <li><input type="checkbox"> <b>Emissão de Token:</b> O servidor emite um JWT de acesso (15 min) contendo <code>user_id</code>, <code>username</code> e <code>role</code>. Opcionalmente emite um Refresh Token em cookie HTTP-Only.</li>
+        <li><input type="checkbox"> <b>Injeção de Contexto:</b> O Middleware Chi extrai o token do header <code>Authorization: Bearer &lt;token&gt;</code>, valida a assinatura HMAC-SHA256 via <code>VerifyToken</code> e insere os claims no <code>r.Context()</code>.</li>
+        <li><input type="checkbox"> <b>Execução de Request:</b> Os handlers acessam <code>claims.UserID</code> do contexto para executar queries SQL estritamente filtradas pelo ID do usuário.</li>
+      </ul>
+    </div>
+
+    <div class="tabpane" id="jwt-crud">
+      <table>
+        <tr><th>Ação</th><th>Rota</th><th>Body / Params</th><th>Resposta</th></tr>
+        <tr><td>Registro</td><td><code>POST /api/v1/auth/register</code></td><td><code>{"username", "email", "password"}</code></td><td>201 Created + User JSON</td></tr>
+        <tr><td>Login</td><td><code>POST /api/v1/auth/login</code></td><td><code>{"username", "password"}</code></td><td>200 OK + <code>{"token": "..."}</code></td></tr>
+        <tr><td>Obter Perfil</td><td><code>GET /api/v1/users/me</code></td><td>Bearer Token</td><td>200 OK + User Info</td></tr>
+        <tr><td>Atualizar Perfil</td><td><code>PUT /api/v1/users/me</code></td><td><code>{"email", "password"}</code></td><td>200 OK + Updated User</td></tr>
+        <tr><td>Deletar Conta</td><td><code>DELETE /api/v1/users/me</code></td><td>Bearer Token</td><td>204 No Content (Cascata DB)</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="spec-chi-ledger">
+  <h2>Spec: Go Ledger Core (go-chi/chi v5)</h2>
+  <div class="panel">
+    <p>O <code>ledger-core</code> é estruturado com o roteador <b>go-chi/chi (v5)</b>, gerenciando Usuários, Auth, Portfólios, Holdings e a recepção e parsing do <b>Input Mensal de Extratos (S3 Ingest)</b>.</p>
+
+    <pre><button class="copy" onclick="copyCode(this)">copy</button><code>package main
+
+import (
+	"net/http"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+)
+
+func SetupRouter() *chi.Mux {
+	r := chi.NewRouter()
+
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.RealIP)
+
+	// Rotas Públicas (Auth)
+	r.Route("/api/v1/auth", func(r chi.Router) {
+		r.Post("/register", RegisterHandler)
+		r.Post("/login", LoginHandler)
+	})
+
+	// Rotas Protegidas por JWT
+	r.Group(func(r chi.Router) {
+		r.Use(JWTAuthMiddleware)
+
+		// Gerenciamento de Usuário
+		r.Route("/api/v1/users", func(r chi.Router) {
+			r.Get("/me", GetProfileHandler)
+			r.Put("/me", UpdateProfileHandler)
+			r.Delete("/me", DeleteUserHandler)
+		})
+
+		// Portfólios, Statements (S3 Ingest) e Reconciliação (S4)
+		r.Route("/api/v1/portfolios", func(r chi.Router) {
+			r.Get("/", ListPortfoliosHandler)
+			r.Post("/", CreatePortfolioHandler)
+			r.Post("/{portfolio_name}/{YYYYMMDD}/assets", PostAssetsIngestHandler)
+			r.Post("/{portfolio_name}/{YYYYMMDD}/mov", PostMovementsIngestHandler)
+			r.Get("/{portfolio_name}/{YYYYMMDD}/reconciliation", GetReconciliationHandler)
+			r.Post("/{portfolio_name}/{YYYYMMDD}/confirm", ConfirmReconciliationHandler)
+		})
+
+		r.Route("/api/v1/holdings", func(r chi.Router) {
+			r.Get("/", ListHoldingsHandler)
+			r.Get("/{id}/transactions", ListTransactionsHandler)
+		})
+	})
+
+	return r
+}</code></pre>
+  </div>
+</section>
+
+<section id="spec-pydantic-worker">
+  <h2>Spec: Worker Python (Pydantic @latest & Market Data)</h2>
+  <div class="panel">
+    <p>O <code>worker</code> Python é acionado a partir da etapa <b>S6 (Market Data & Analytics)</b>. Todas as suas rotas, inputs, outputs, entidades de domínio e Objetos de Valor da Arquitetura Orientada a Domínio (DDD Value Objects) utilizam <b>Pydantic v2 (versão mais recente)</b> com modelos imutáveis e validação estrita.</p>
+
+    <pre><button class="copy" onclick="copyCode(this)">copy</button><code>from pydantic import BaseModel, Field, ConfigDict, field_validator
+from typing import Optional, List
+from datetime import datetime
+from enum import Enum
+
+class BenchmarkType(str, Enum):
+    SELIC = "SELIC"
+    PTAX = "PTAX"
+    IBOV = "IBOV"
+    IFIX = "IFIX"
+    SP500 = "SP500"
+    NASDAQ = "NASDAQ"
+    FEDFUNDS = "FEDFUNDS"
+
+# Value Object (DDD) Imutável para Cotações e Benchmarks
+class QuotePointVO(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    symbol: str = Field(min_length=1)
+    timestamp: datetime
+    price: float = Field(gt=0)
+    currency: str = Field(default="BRL", pattern="^[A-Z]{3}$")
+
+# Value Object (DDD) Imutável para Requisição de Market Data
+class MarketDataQueryVO(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    benchmark: BenchmarkType
+    start_date: str = Field(pattern="^\\d{8}$")
+    end_date: str = Field(pattern="^\\d{8}$")
+
+# Schema de Output de Benchmarks (API Result) Validado por Pydantic v2
+class BenchmarkSeriesOutputSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    benchmark: BenchmarkType
+    base_currency: str = "BRL"
+    points: List[QuotePointVO]
+    count: int = Field(ge=0)
+
+    @field_validator("count")
+    @classmethod
+    def validate_count_matches_points(cls, v: int, info) -> int:
+        points = info.data.get("points", [])
+        if v != len(points):
+            return len(points)
+        return v</code></pre>
+  </div>
+</section>
+
+<section id="spec-migrations">
+  <h2>Spec: DB Migrations (golang-migrate & Alembic)</h2>
+  <div class="panel">
+    <p>Todas as tabelas do <code>ledger-core</code> são criadas e evoluídas através do <b>golang-migrate/migrate</b> via arquivos SQL idempotentes versionados. Para o <code>worker</code> em Python, o ecossistema utiliza migrações compatíveis ou <b>Alembic</b> configurado no PostgreSQL.</p>
+
+    <div class="sub-h">Estrutura de Migrações (golang-migrate)</div>
+    <pre><button class="copy" onclick="copyCode(this)">copy</button><code>ledger/db/migrations/
+├── 000001_create_users_table.up.sql
+├── 000001_create_users_table.down.sql
+├── 000002_create_portfolios_table.up.sql
+├── 000002_create_portfolios_table.down.sql
+├── 000003_create_holdings_table.up.sql
+└── 000003_create_holdings_table.down.sql</code></pre>
+
+    <div class="sub-h">Exemplo de SQL UP (000001_create_users_table.up.sql)</div>
+    <pre><button class="copy" onclick="copyCode(this)">copy</button><code>CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL DEFAULT 'user',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_users_username ON users(username);
+CREATE INDEX idx_users_email ON users(email);</code></pre>
+  </div>
+</section>
+
+<section id="spec-xirr">
+  <h2>Spec: XIRR / TIR</h2>
+  <p class="lead">Retorno anualizado com timing exato dos fluxos. Todo ativo e o portfolio exibem XIRR.</p>
+  <div class="panel">
+    <pre><button class="copy" onclick="copyCode(this)">copy</button><code>Σ ( cashflow_i / (1 + r)^((date_i − date_0) / 365.25) ) = 0</code></pre>
+    <ul class="tasks">
+      <li><input type="checkbox"> Saídas negativas (buy/aporte/tax/come-cotas), entradas positivas (sell/dividend/jscp/interest)</li>
+      <li><input type="checkbox"> Venda fictícia @ valor atual: preço de mercado (quantity) ou gross_value do statement (value)</li>
+      <li><input type="checkbox"> <b>fees simplificado:</b> se o movimento traz fee destacável, usa <code>net</code>; senão usa <code>amount</code> cheio</li>
+      <li><input type="checkbox"> Exporta tabela de cash flows p/ verificação; compara vs CDI/IBOV/IPCA</li>
+      <li><input type="checkbox"> Precisão-alvo: 4 casas vs Excel =XIRR() (verificação manual)</li>
+    </ul>
+  </div>
+</section>
+
+<section id="spec-market">
+  <h2>Spec: Market Data (statement-anchored)</h2>
+  <div class="panel">
+    <p><b>Princípio:</b> statement confirmado = ponto observado real (âncora). Mercado só interpola o meio e provê benchmarks base. Âncora nunca é sobrescrita.</p>
+    <table>
+      <tr><th>Fonte</th><th>Cobre</th><th>Papel</th></tr>
+      <tr><td>monthly_statements</td><td>posição real por ativo/mês</td><td><b>âncora primária</b> da série</td></tr>
+      <tr><td>yfinance</td><td>IBOV/IFIX/S&P/NASDAQ/tickers</td><td>interpolação (quantity) + benchmarks</td></tr>
+      <tr><td>BCB SGS</td><td>SELIC(432), PTAX(1)</td><td>benchmark + curva CDI p/ value-based</td></tr>
+      <tr><td>FRED</td><td>Fed Funds</td><td>benchmark</td></tr>
+      <tr><td>brapi.dev</td><td>B3 backup</td><td>fallback de preço</td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="spec-mc">
+  <h2>Spec: Motor Monte Carlo <span class="pill p2">Fase 2</span></h2>
+  <p class="lead">GBM com choques correlacionados (Cholesky) sobre 7 fatores. Job Celery assíncrono.</p>
+  <div class="tabs">
+    <div class="tabbar">
+      <button class="active" onclick="tab(this,'mc-fac')">7 Fatores</button>
+      <button onclick="tab(this,'mc-cen')">Cenários</button>
+      <button onclick="tab(this,'mc-cod')">Metodologia</button>
+    </div>
+    <div class="tabpane active" id="mc-fac">
+      <table>
+        <tr><th>Índice</th><th>Símbolo</th><th>Fonte</th></tr>
+        <tr><td>SELIC</td><td>SELIC</td><td>BCB</td></tr>
+        <tr><td>IBOVESPA</td><td>^BVSP</td><td>yfinance</td></tr>
+        <tr><td>IFIX</td><td>^IFIX</td><td>yfinance/B3</td></tr>
+        <tr><td>PTAX</td><td>PTAX</td><td>BCB</td></tr>
+        <tr><td>S&P 500</td><td>^GSPC</td><td>yfinance</td></tr>
+        <tr><td>NASDAQ</td><td>^IXIC</td><td>yfinance</td></tr>
+        <tr><td>Fed Funds</td><td>FEDFUNDS</td><td>FRED</td></tr>
+      </table>
+    </div>
+    <div class="tabpane" id="mc-cen">
+      <table>
+        <tr><th>Cenário</th><th>SELIC</th><th>IBOV</th><th>PTAX</th><th>S&P</th></tr>
+        <tr><td>Baseline</td><td>atual</td><td>μ hist</td><td>atual</td><td>μ hist</td></tr>
+        <tr><td>High SELIC</td><td>+200bps</td><td>−15%</td><td>+5%</td><td>−5%</td></tr>
+        <tr><td>Low SELIC</td><td>−200bps</td><td>+20%</td><td>−3%</td><td>+10%</td></tr>
+        <tr><td>Weak BRL</td><td>atual</td><td>−5%</td><td>+15%</td><td>−3%</td></tr>
+        <tr><td>US Bear</td><td>atual</td><td>−10%</td><td>+5%</td><td>−25%</td></tr>
+        <tr><td>Custom</td><td colspan="4">user-defined</td></tr>
+      </table>
+    </div>
+    <div class="tabpane" id="mc-cod">
+      <pre><button class="copy" onclick="copyCode(this)">copy</button><code>L = np.linalg.cholesky(cov)              # choques correlacionados
+for t in range(1, horizon):
+    Z = np.random.standard_normal((n_assets, n_sims))
+    daily = adjusted.reshape(-1,1) + L @ Z
+    port_ret = np.sum(weights.reshape(-1,1) * daily, axis=0)
+    paths[t] = paths[t-1] * (1 + port_ret)
+var_95  = np.percentile(paths[-1], 5)
+cvar_95 = paths[-1][paths[-1] <= var_95].mean()</code></pre>
+    </div>
+  </div>
+</section>
+
+<section id="spec-infer">
+  <h2>Spec: Auto-Inferência de Benchmark <span class="pill p2">Fase 2</span></h2>
+  <p class="lead">Correlação de Pearson (252d) do ativo vs os 7 benchmarks; fallback heurístico por classe.</p>
+  <div class="panel">
+    <table>
+      <tr><th>Classe</th><th>Default</th><th>Override</th></tr>
+      <tr><td>CDB/LCA/LCD/Tesouro SELIC</td><td>SELIC</td><td>IPCA-linked → IPCA</td></tr>
+      <tr><td>Ações/ETFs/Fundos</td><td>IBOVESPA</td><td>&gt;50% exportação → +PTAX</td></tr>
+      <tr><td>FIIs</td><td>IFIX</td><td>logística → +IBOV</td></tr>
+      <tr><td>Internacional (US)</td><td>S&P 500</td><td>tech → NASDAQ; rate-sensitive → FedFunds</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ============ GOVERNANCE ============ -->
+
+<section id="conventions">
+  <h2>Convenções — Conventional Commits</h2>
+  <p class="lead">Cada step fecha com um commit no padrão <a href="https://www.conventionalcommits.org/en/v1.0.0/">Conventional Commits v1.0.0</a>.</p>
+  <div class="panel">
+    <pre><button class="copy" onclick="copyCode(this)">copy</button><code>&lt;type&gt;(&lt;scope&gt;): &lt;descrição no imperativo&gt;
+
+[corpo opcional]
+[footer opcional — BREAKING CHANGE: ...]</code></pre>
+    <table>
+      <tr><th>type</th><th>uso</th><th>scopes deste projeto</th></tr>
+      <tr><td><code>feat</code></td><td>nova funcionalidade</td><td rowspan="6"><code>ledger</code> · <code>worker</code> · <code>web</code> · <code>infra</code> · <code>workspace</code></td></tr>
+      <tr><td><code>fix</code></td><td>correção de bug</td></tr>
+      <tr><td><code>chore</code></td><td>infra, deps, tooling</td></tr>
+      <tr><td><code>refactor</code></td><td>refatoração sem mudança de comportamento</td></tr>
+      <tr><td><code>docs</code></td><td>documentação</td></tr>
+      <tr><td><code>perf</code></td><td>performance</td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="risks">
+  <h2>Registro de Riscos (Probabilidade × Impacto)</h2>
+  <div class="riskmx">
+    <div class="cell axis"></div>
+    <div class="cell axis">Impacto Baixo</div>
+    <div class="cell axis">Impacto Médio</div>
+    <div class="cell axis">Impacto Alto</div>
+
+    <div class="cell axis">Prob. Alta</div>
+    <div class="cell rm"><b>R2</b> Extrator LLM devolve JSON inconsistente → validação estrita no Go Ledger Core</div>
+    <div class="cell rh"><b>R1</b> XIRR divergir do Excel → verificação manual em cada holding-chave</div>
+    <div class="cell rh"><b>R3</b> Matching duplica holding de renda fixa → normalize(name)+portfolio_name + revisão na reconciliação</div>
+
+    <div class="cell axis">Prob. Média</div>
+    <div class="cell rl"><b>R6</b> Número BR/US mal parseado → normalizador dedicado no Go Ledger Core</div>
+    <div class="cell rm"><b>R4</b> Exposição de rotas sem auth → middleware Chi centralizado de validação JWT</div>
+    <div class="cell rm"><b>R5</b> yfinance instável / IFIX ausente → breaker + brapi + XFIX11.SA/manual</div>
+
+    <div class="cell axis">Prob. Baixa</div>
+    <div class="cell rl"><b>R9</b> Token JWT expirado durante upload → Refresh token automático</div>
+    <div class="cell rl"><b>R8</b> BCB/FRED mudam schema → adapters isolados</div>
+    <div class="cell rm"><b>R7</b> value-based sem preço de mercado distorce série → âncora do statement + curva CDI</div>
+  </div>
+</section>
+
+<section id="success">
+  <h2>Critérios de Sucesso (Definition of Done — MVP v3.0)</h2>
+  <div class="panel">
+    <ul class="tasks">
+      <li><input type="checkbox"> Multi-user com autenticação JWT e rotas limpas (sem <code>{user}</code> no path)</li>
+      <li><input type="checkbox"> Go Ledger Core implementado com <code>go-chi/chi v5</code> e <code>golang-jwt/jwt/v5</code></li>
+      <li><input type="checkbox"> Endpoints de Auth e CRUD de usuário (Register, Login, GET/PUT/DELETE /api/v1/users/me) operacionais</li>
+      <li><input type="checkbox"> S3 Ingest & Parser do JSON canônico executado no Go Ledger Core</li>
+      <li><input type="checkbox"> Worker Python acionado na etapa S6 (Market Data) com validação estrita Pydantic @latest (v2) para inputs, outputs e Objetos de Valor (DDD VOs)</li>
+      <li><input type="checkbox"> Schema do banco de dados e migrações criados via <code>golang-migrate/migrate</code></li>
+      <li><input type="checkbox"> Envio de assets.json/movements.json gera holdings/transações isolados por usuário</li>
+      <li><input type="checkbox"> Dashboard Next.js 16.3 integrado com login, registro, perfil do usuário e renderização de patrimônio</li>
+      <li><input type="checkbox"> XIRR confere com Excel =XIRR() em 4 casas (verificação manual)</li>
+      <li><input type="checkbox"> Export CSV/XLSX/PDF com XIRR e cash flows por usuário</li>
+    </ul>
+  </div>
+</section>
+
+<section id="roadmap">
+  <h2>Roadmap</h2>
+  <div class="grid3">
+    <div class="panel">
+      <h3 style="margin-top:0">Fase 1 — MVP <span class="pill">agora</span></h3>
+      <ul class="tasks">
+        <li><input type="checkbox"> Multi-tenant com Auth JWT</li>
+        <li><input type="checkbox"> Ledger Go + go-chi/chi v5</li>
+        <li><input type="checkbox"> User CRUD Endpoints</li>
+        <li><input type="checkbox"> Ingest JSON no Go Ledger Core (S3)</li>
+        <li><input type="checkbox"> Migrações golang-migrate</li>
+        <li><input type="checkbox"> Market Data no Python Worker (Pydantic v2) (S6)</li>
+        <li><input type="checkbox"> Consolidação + reconciliação</li>
+        <li><input type="checkbox"> Dashboard consolidado JWT</li>
+        <li><input type="checkbox"> XIRR auto-cálculo</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3 style="margin-top:0">Fase 2 — Analytics <span class="pill p2">próximo</span></h3>
+      <ul class="tasks">
+        <li><input type="checkbox"> Monte Carlo (7 benchmarks)</li>
+        <li><input type="checkbox"> Auto-inferência de benchmark</li>
+        <li><input type="checkbox"> Override + blend</li>
+        <li><input type="checkbox"> Cenários pré-def + custom</li>
+        <li><input type="checkbox"> Fan charts, heatmaps, histogramas</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3 style="margin-top:0">Fase 3 — Automação <span class="pill p3">futuro</span></h3>
+      <ul class="tasks">
+        <li><input type="checkbox"> Parser PDF de notas (elimina o LLM manual)</li>
+        <li><input type="checkbox"> Extração automática da Tabela de Ativos</li>
+        <li><input type="checkbox"> Integração Open Finance Brasil</li>
+        <li><input type="checkbox"> Testes automatizados E2E</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<script>
+mermaid.initialize({startOnLoad:true, theme:'default', securityLevel:'loose'});
+function toggleStep(h){ h.parentElement.classList.toggle('open'); }
+function tab(btn, id){
+  const box = btn.closest('.tabs');
+  box.querySelectorAll('.tabbar button').forEach(b=>b.classList.remove('active'));
+  box.querySelectorAll('.tabpane').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+function copyCode(btn){
+  const code = btn.parentElement.querySelector('code').innerText;
+  navigator.clipboard.writeText(code).then(()=>{ btn.textContent='copied ✓'; btn.classList.add('ok');
+    setTimeout(()=>{btn.textContent='copy'; btn.classList.remove('ok');},1400); });
+}
+function updateProgress(){
+  const all=[...document.querySelectorAll('main input[type=checkbox]')];
+  const done=all.filter(c=>c.checked).length, pct=all.length?Math.round(done/all.length*100):0;
+  document.getElementById('progfill').style.width=pct+'%';
+  document.getElementById('progtxt').textContent=`${done} / ${all.length} · ${pct}%`;
+}
+document.addEventListener('change',e=>{ if(e.target.matches('input[type=checkbox]')) updateProgress(); });
+function toggleTheme(){
+  const h=document.documentElement, dark=h.getAttribute('data-theme')==='dark';
+  h.setAttribute('data-theme', dark?'light':'dark');
+  document.getElementById('themebtn').textContent = dark?'🌙 Dark':'☀️ Light';
+  try{localStorage.setItem('theme', dark?'light':'dark')}catch(e){}
+}
+(function(){
+  let t; try{t=localStorage.getItem('theme')}catch(e){}
+  if(!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light';
+  document.documentElement.setAttribute('data-theme',t);
+  document.getElementById('themebtn').textContent = t==='dark'?'☀️ Light':'🌙 Dark';
+  updateProgress();
+})();
+</script>
+</body>
+</html>
