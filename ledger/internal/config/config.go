@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 )
 
 // Config holds environment-driven application settings.
@@ -14,6 +15,11 @@ type Config struct {
 	JwtIssuer            string
 	JwtExpirationMinutes int
 	Port                 string
+	MaxConnections       int
+	MinConnections       int
+	IdleTimeout          time.Duration
+	ConnTimeout          time.Duration
+	IdleLifetime         time.Duration
 }
 
 // Load reads configuration from the environment, applying defaults where appropriate.
@@ -53,12 +59,71 @@ func Load() (*Config, error) {
 		port = "8080"
 	}
 
+	// Connection pool configuration
+	maxConn := 50
+	if raw := os.Getenv("LEDGER_DB_POOL_MAX"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil {
+			return nil, fmt.Errorf("invalid LEDGER_DB_POOL_MAX: %w", err)
+		}
+		if parsed > 0 {
+			maxConn = parsed
+		}
+	}
+
+	minConn := 10
+	if raw := os.Getenv("LEDGER_DB_POOL_MIN"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil {
+			return nil, fmt.Errorf("invalid LEDGER_DB_POOL_MIN: %w", err)
+		}
+		if parsed > 0 {
+			minConn = parsed
+		}
+	}
+
+	idleTimeout := time.Duration(30) * time.Second
+	if raw := os.Getenv("LEDGER_DB_POOL_IDLE_TIMEOUT"); raw != "" {
+		parsed, err := time.ParseDuration(raw)
+		if err != nil {
+			return nil, fmt.Errorf("invalid LEDGER_DB_POOL_IDLE_TIMEOUT: %w", err)
+		}
+		if parsed > 0 {
+			idleTimeout = parsed
+		}
+	}
+
+	connTimeout := time.Duration(10) * time.Second
+	if raw := os.Getenv("LEDGER_DB_POOL_CONN_TIMEOUT"); raw != "" {
+		parsed, err := time.ParseDuration(raw)
+		if err != nil {
+			return nil, fmt.Errorf("invalid LEDGER_DB_POOL_CONN_TIMEOUT: %w", err)
+		}
+		if parsed > 0 {
+			connTimeout = parsed
+		}
+	}
+
+	idleLifetime := time.Duration(5) * time.Minute
+	if raw := os.Getenv("LEDGER_DB_POOL_IDLE_LIFETIME"); raw != "" {
+		parsed, err := time.ParseDuration(raw)
+		if err != nil {
+			return nil, fmt.Errorf("invalid LEDGER_DB_POOL_IDLE_LIFETIME: %w", err)
+		}
+		if parsed > 0 {
+			idleLifetime = parsed
+		}
+	}
+	// postgres://jack:secret@pg.example.com:5432/mydb?sslmode=verify-ca&pool_max_conns=10&pool_max_conn_lifetime=1h30m
+	databaseURL += fmt.Sprintf("&pool_max_conns=%d&pool_min_conns=%d&pool_max_conn_lifetime=%s&pool_max_conn_idle_time=%s&pool_max_conn_idle_lifetime=%s&", maxConn, minConn, connTimeout.String(), idleTimeout.String(), idleLifetime.String())
+
 	return &Config{
 		DatabaseURL:          databaseURL,
 		JwtSigningKey:        jwtSigningKey,
 		JwtIssuer:            jwtIssuer,
 		JwtExpirationMinutes: expirationMinutes,
 		Port:                 port,
+		MaxConnections:       maxConn,
 	}, nil
 }
 

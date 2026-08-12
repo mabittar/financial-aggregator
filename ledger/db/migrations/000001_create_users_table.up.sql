@@ -8,3 +8,8 @@ CREATE TABLE IF NOT EXISTS users (
   display_name TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+
+-- Create indexes for frequently queried columns
+CREATE INDEX idx_users_id ON users(id);
+CREATE INDEX idx_email_id ON users(email);

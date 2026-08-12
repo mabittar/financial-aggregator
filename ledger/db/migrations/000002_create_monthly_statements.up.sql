@@ -13,3 +13,7 @@ CREATE TABLE IF NOT EXISTS monthly_statements (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (user_id, portfolio_name, reference_date, ingest_key)
 );
+
+-- Create indexes for frequently queried columns
+CREATE INDEX idx_monthly_statements_id ON monthly_statements(id);
+CREATE INDEX idx_monthly_statements_user_id ON monthly_statements(user_id);
