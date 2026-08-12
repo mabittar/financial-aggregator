@@ -23,7 +23,7 @@ func main() {
 	// Validate all required environment variables are present
 	cfg.Validate()
 
-	store, err := db.Connect(ctx, cfg.DatabaseURL)
+	store, err := db.Connect(ctx, cfg)
 	if err != nil {
 		log.Fatalf("failed to connect to db: %v", err)
 	}

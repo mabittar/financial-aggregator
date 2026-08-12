@@ -7,6 +7,14 @@ import (
 	"github.com/financial-aggregator/ledger/internal/config"
 )
 
+func getBaseConnStr() string {
+	if envUrl := os.Getenv("DATABASE_URL"); envUrl != "" {
+		return envUrl
+	}
+	// Fallback to run tests without Docker
+	return "postgres://admin:admin_password@localhost:5432/aggregator?sslmode=disable"
+}
+
 // SetupTestEnv sets up environment variables for testing
 // and returns a cleanup function to restore original values
 func SetupTestEnv(t *testing.T, env map[string]string) func() {
@@ -40,7 +48,7 @@ func NewTestConfig(t *testing.T) *config.Config {
 	t.Helper()
 
 	return &config.Config{
-		DatabaseURL:          "postgresql://testuser:testpass@localhost/testdb?sslmode=disable",
+		DatabaseURL:          getBaseConnStr(),
 		JwtSigningKey:        "test-secret-key-256-bit-minimum-length-required-here-1234567890ab",
 		JwtIssuer:            "test-issuer",
 		JwtExpirationMinutes: 60,

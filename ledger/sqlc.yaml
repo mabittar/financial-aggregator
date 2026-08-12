@@ -1,0 +1,25 @@
+# sqlc.yaml - Configuration for sqlc code generation
+version: "2"
+sql:
+  # Configuration for PostgreSQL database
+  - engine: "postgresql"
+    # Directory containing SQL query files with annotations
+    queries: "db/queries"
+    # Directory containing schema/migration files
+    schema: "db/migrations"
+    gen:
+      go:
+        # Package name for generated Go code
+        package: "db"
+        # Output directory for generated files
+        out: "db/sqlc"
+        # Use pgx/v5 as the database driver
+        sql_package: "pgx/v5"
+        # Required when using :copyfrom queries
+        sql_driver: "github.com/jackc/pgx/v5"
+        # Emit JSON tags on generated structs
+        emit_json_tags: true
+        # Emit interface for Querier
+        emit_interface: true
+        # Store the DB handle on Queries instead of passing it to each method
+        emit_methods_with_db_argument: false

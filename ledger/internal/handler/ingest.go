@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"crypto/sha256"
-	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -11,6 +10,7 @@ import (
 	"time"
 
 	"github.com/financial-aggregator/ledger/internal/auth"
+	"github.com/financial-aggregator/ledger/internal/db"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -145,17 +145,19 @@ func (h *Handler) handleIngest(w http.ResponseWriter, r *http.Request, source st
 	payloadHash := hex.EncodeToString(hashValue[:])
 
 	var response ingestResponse
-	err = h.store.WithTransaction(r.Context(), userID, func(ctx context.Context, tx *sql.Tx) error {
+	err = h.store.WithTransaction(r.Context(), userID, func(ctx context.Context, tx db.Tx) error {
+		// Find if idempotency key exists
 		existingKey, err := h.repo.FindIdempotencyKey(ctx, tx, req.IdempotencyKey)
-		if err != nil && err != sql.ErrNoRows {
+		if err != nil {
 			return err
 		}
 
-		if existingKey != nil {
+		if existingKey != nil && existingKey.UserID == userID {
 			if !req.ForceUpdate {
 				return &duplicateError{metadata: existingKey.ResponseMetadata}
 			}
 
+			// Update existing statement
 			statementID, err := h.repo.UpdateMonthlyStatement(ctx, tx, userID, portfolioName, referenceDate, req.IdempotencyKey, normalized, normalized, source)
 			if err != nil {
 				return err
@@ -170,6 +172,7 @@ func (h *Handler) handleIngest(w http.ResponseWriter, r *http.Request, source st
 			return nil
 		}
 
+		// Insert new statement
 		statementID, err := h.repo.InsertMonthlyStatement(ctx, tx, userID, portfolioName, referenceDate, req.IdempotencyKey, normalized, normalized, source)
 		if err != nil {
 			return err
@@ -249,7 +252,7 @@ func (h *Handler) PostConfirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.store.WithTransaction(r.Context(), userID, func(ctx context.Context, tx *sql.Tx) error {
+	err = h.store.WithTransaction(r.Context(), userID, func(ctx context.Context, tx db.Tx) error {
 		return h.repo.ConfirmStatements(ctx, tx, userID, portfolioName, referenceDate)
 	})
 	if err != nil {

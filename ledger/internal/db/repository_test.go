@@ -2,24 +2,45 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
+	"math/rand"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/financial-aggregator/ledger/internal/auth"
 	"github.com/financial-aggregator/ledger/tests"
+	"github.com/jackc/pgx/v5"
 )
 
+func setupTestDB(t *testing.T) (*DB, *Repository, func()) {
+	t.Helper()
+
+	pool, dbURL, cleanupDB := tests.NewTestDB(t)
+
+	cfg := tests.NewTestConfig(t)
+	cfg.DatabaseURL = dbURL
+
+	repo := NewRepository(pool)
+
+	cleanup := func() {
+		pool.Close()
+		cleanupDB()
+	}
+
+	return &DB{Conn: pool}, repo, cleanup
+}
+
 func TestUserRepository_Create_And_FindByEmail(t *testing.T) {
-	db, cleanup := tests.NewTestDB(t)
+	db, _, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	repo := NewUserRepository(db)
+	repo := NewUserRepository(db.Conn)
 	ctx := context.Background()
+	email := "test-" + strconv.Itoa(rand.Intn(100000)) + "@example.com"
 
 	user := &auth.User{
-		Email:        "test@example.com",
+		Email:        email,
 		PasswordHash: "hashed_password",
 		DisplayName:  "Test User",
 	}
@@ -38,7 +59,7 @@ func TestUserRepository_Create_And_FindByEmail(t *testing.T) {
 	}
 
 	// Find the user
-	found, err := repo.FindByEmail(ctx, "test@example.com")
+	found, err := repo.FindByEmail(ctx, email)
 	if err != nil {
 		t.Fatalf("FindByEmail() failed: %v", err)
 	}
@@ -51,7 +72,7 @@ func TestUserRepository_Create_And_FindByEmail(t *testing.T) {
 		t.Errorf("Expected user ID %q, got %q", user.ID, found.ID)
 	}
 
-	if found.Email != "test@example.com" {
+	if found.Email != email {
 		t.Errorf("Expected email 'test@example.com', got %q", found.Email)
 	}
 
@@ -61,16 +82,15 @@ func TestUserRepository_Create_And_FindByEmail(t *testing.T) {
 }
 
 func TestRepository_InsertMonthlyStatement_And_FindList(t *testing.T) {
-	db, cleanup := tests.NewTestDB(t)
+	db, repo, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	repo := NewRepository(db)
-	userRepo := NewUserRepository(db)
+	userRepo := NewUserRepository(db.Conn)
 	ctx := context.Background()
 
 	// Create a user first
 	user := &auth.User{
-		Email:        "test@example.com",
+		Email:        "test-" + strconv.Itoa(rand.Intn(100000)) + "@example.com",
 		PasswordHash: "hashed_password",
 		DisplayName:  "Test User",
 	}
@@ -79,11 +99,11 @@ func TestRepository_InsertMonthlyStatement_And_FindList(t *testing.T) {
 	}
 
 	// Start a transaction for the statement insertion
-	tx, err := db.BeginTx(ctx, nil)
+	tx, err := db.Conn.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		t.Fatalf("Failed to begin transaction: %v", err)
 	}
-	defer tx.Rollback()
+	defer tx.Rollback(ctx)
 
 	// Prepare test data
 	refDate := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
@@ -101,7 +121,7 @@ func TestRepository_InsertMonthlyStatement_And_FindList(t *testing.T) {
 	}
 
 	// Commit transaction
-	if err := tx.Commit(); err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		t.Fatalf("Failed to commit transaction: %v", err)
 	}
 
@@ -130,16 +150,15 @@ func TestRepository_InsertMonthlyStatement_And_FindList(t *testing.T) {
 }
 
 func TestRepository_IdempotencyKey_Upsert_Idempotent(t *testing.T) {
-	db, cleanup := tests.NewTestDB(t)
+	db, repo, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	repo := NewRepository(db)
-	userRepo := NewUserRepository(db)
+	userRepo := NewUserRepository(db.Conn)
 	ctx := context.Background()
 
 	// Create a user
 	user := &auth.User{
-		Email:        "test@example.com",
+		Email:        "test-" + strconv.Itoa(rand.Intn(100000)) + "@example.com",
 		PasswordHash: "hashed_password",
 		DisplayName:  "Test User",
 	}
@@ -148,7 +167,7 @@ func TestRepository_IdempotencyKey_Upsert_Idempotent(t *testing.T) {
 	}
 
 	// Create idempotency key via transaction
-	tx, err := db.BeginTx(ctx, nil)
+	tx, err := db.Conn.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		t.Fatalf("Failed to begin transaction: %v", err)
 	}
@@ -156,7 +175,7 @@ func TestRepository_IdempotencyKey_Upsert_Idempotent(t *testing.T) {
 	responseMetadata := json.RawMessage(`{"response": "first"}`)
 	err = repo.UpsertIdempotencyKey(ctx, tx, "key_1", user.ID, "hash1", responseMetadata)
 	if err != nil {
-		tx.Rollback()
+		tx.Rollback(ctx)
 		t.Fatalf("First UpsertIdempotencyKey() failed: %v", err)
 	}
 
@@ -164,20 +183,22 @@ func TestRepository_IdempotencyKey_Upsert_Idempotent(t *testing.T) {
 	responseMetadata2 := json.RawMessage(`{"response": "second"}`)
 	err = repo.UpsertIdempotencyKey(ctx, tx, "key_1", user.ID, "hash1", responseMetadata2)
 	if err != nil {
-		tx.Rollback()
+		tx.Rollback(ctx)
 		t.Fatalf("Second UpsertIdempotencyKey() failed: %v", err)
 	}
 
-	tx.Commit()
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatalf("Failed to commit transaction: %v", err)
+	}
 
 	// Verify the key exists and has the updated metadata
-	tx2, err := db.BeginTx(ctx, &sql.TxOptions{
-		Isolation: sql.LevelReadCommitted,
+	tx2, err := db.Conn.BeginTx(ctx, pgx.TxOptions{
+		IsoLevel: pgx.ReadCommitted,
 	})
 	if err != nil {
 		t.Fatalf("Failed to begin read transaction: %v", err)
 	}
-	defer tx2.Rollback()
+	defer tx2.Rollback(ctx)
 
 	key, err := repo.FindIdempotencyKey(ctx, tx2, "key_1")
 	if err != nil {
@@ -198,16 +219,15 @@ func TestRepository_IdempotencyKey_Upsert_Idempotent(t *testing.T) {
 }
 
 func TestRepository_MonthlyStatement_UniqueConstraint(t *testing.T) {
-	db, cleanup := tests.NewTestDB(t)
+	db, repo, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	repo := NewRepository(db)
-	userRepo := NewUserRepository(db)
+	userRepo := NewUserRepository(db.Conn)
 	ctx := context.Background()
 
 	// Create a user
 	user := &auth.User{
-		Email:        "test@example.com",
+		Email:        "test-" + strconv.Itoa(rand.Intn(100000)) + "@example.com",
 		PasswordHash: "hashed_password",
 		DisplayName:  "Test User",
 	}
@@ -220,44 +240,48 @@ func TestRepository_MonthlyStatement_UniqueConstraint(t *testing.T) {
 	parsedPayload := json.RawMessage(`{"test": "parsed"}`)
 
 	// Insert first statement
-	tx1, err := db.BeginTx(ctx, nil)
+	tx1, err := db.Conn.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		t.Fatalf("Failed to begin transaction: %v", err)
 	}
 
 	_, err = repo.InsertMonthlyStatement(ctx, tx1, user.ID, "portfolio1", refDate, "key1", rawPayload, parsedPayload, "manual")
 	if err != nil {
-		tx1.Rollback()
+		tx1.Rollback(ctx)
 		t.Fatalf("First InsertMonthlyStatement() failed: %v", err)
 	}
-	tx1.Commit()
+	if err := tx1.Commit(ctx); err != nil {
+		t.Fatalf("Failed to commit transaction: %v", err)
+	}
 
 	// Try to insert duplicate (same user_id, portfolio_name, reference_date, ingest_key)
 	// This should fail due to unique constraint
-	tx2, err := db.BeginTx(ctx, nil)
+	tx2, err := db.Conn.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		t.Fatalf("Failed to begin second transaction: %v", err)
 	}
 
 	_, err = repo.InsertMonthlyStatement(ctx, tx2, user.ID, "portfolio1", refDate, "key1", rawPayload, parsedPayload, "manual")
-	tx2.Rollback()
+	tx2.Rollback(ctx)
 
 	if err == nil {
 		t.Error("Expected error for duplicate statement (unique constraint), got nil")
 	}
 
 	// But inserting with different key should succeed
-	tx3, err := db.BeginTx(ctx, nil)
+	tx3, err := db.Conn.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		t.Fatalf("Failed to begin third transaction: %v", err)
 	}
 
 	stmtID, err := repo.InsertMonthlyStatement(ctx, tx3, user.ID, "portfolio1", refDate, "key2", rawPayload, parsedPayload, "manual")
 	if err != nil {
-		tx3.Rollback()
+		tx3.Rollback(ctx)
 		t.Fatalf("Second InsertMonthlyStatement() with different key failed: %v", err)
 	}
-	tx3.Commit()
+	if err := tx3.Commit(ctx); err != nil {
+		t.Fatalf("Failed to commit transaction: %v", err)
+	}
 
 	if stmtID == "" {
 		t.Error("Expected non-empty statement ID for second insert")

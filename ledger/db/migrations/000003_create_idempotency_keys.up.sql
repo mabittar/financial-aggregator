@@ -7,3 +7,5 @@ CREATE TABLE IF NOT EXISTS idempotency_keys (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- Create indexes for frequently queried columns
+CREATE INDEX idx_idempotency_keys_user_id ON idempotency_keys(user_id);
