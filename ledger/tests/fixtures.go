@@ -168,39 +168,3 @@ func replaceDBName(t *testing.T, rawURL string, newDBName string) string {
 	parsedURL.Path = "/" + strings.TrimPrefix(newDBName, "/")
 	return parsedURL.String()
 }
-
-// runMigrationsIfNotApplied checks whether a migration has already been applied before attempting to apply it again.
-// Returns nil if the migration is idempotent (already applied or no pending migrations).
-// Returns an error if the migration fails for a non-idempotent reason.
-func runMigrationsIfNotApplied(ctx context.Context, db *sql.DB) error {
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
-	if err != nil {
-		return fmt.Errorf("error creating migration driver: %w", err)
-	}
-
-	mInstance, err := migrate.NewWithDatabaseInstance(
-		"file://"+migrationsPath(),
-		"postgres",
-		driver,
-	)
-	if err != nil {
-		return fmt.Errorf("error creating migration instance: %w", err)
-	}
-
-	// Check current migration version
-	if err != nil && err != migrate.ErrNoChange {
-		return fmt.Errorf("error checking migration version: %w", err)
-	}
-
-	// If already at the latest version, this migration is idempotent — skip it.
-	if err == migrate.ErrNoChange {
-		return nil
-	}
-
-	// Apply pending migrations.
-	if err := mInstance.Up(); err != nil {
-		return fmt.Errorf("error running migrations: %w", err)
-	}
-
-	return nil
-}

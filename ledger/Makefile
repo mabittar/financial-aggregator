@@ -1,4 +1,4 @@
-.PHONY: help build test test-unit test-integration lint migrate-up migrate-down migrate-status clean
+.PHONY: help build test test-unit test-integration lint sqlc-generate sqlc-verify migrate-up migrate-down migrate-status clean
 
 # Default target
 help:
@@ -96,3 +96,31 @@ clean:
 run: build migrate-up
 	@echo "Starting ledger service..."
 	./cmd/server/server
+
+# Generate type-safe Go queries from SQL using sqlc
+sqlc-generate:
+	@echo "Generating type-safe Go code with sqlc..."
+	@if ! command -v sqlc >/dev/null 2>&1; then \
+		echo "Error: sqlc CLI is not installed"; \
+		echo "Install it with: go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest"; \
+		exit 1; \
+	fi
+	@sqlc generate
+	@echo "✓ Generated Go code in db/sqlc/"
+
+# Verify generated sqlc code is up to date
+sqlc-verify:
+	@echo "Verifying sqlc code is up to date..."
+	@if ! command -v sqlc >/dev/null 2>&1; then \
+		echo "Error: sqlc CLI is not installed"; \
+		exit 1; \
+	fi
+	@output=$$(mktemp) && \
+	sqlc generate && \
+	if [ -d "db/sqlc" ]; then \
+		git diff --quiet -- db/sqlc/ && echo "✓ sqlc generated code is up to date" || (echo "✗ sqlc generated code is out of date" && git diff db/sqlc/ && exit 1); \
+	else \
+		echo "✗ No sqlc output directory found"; \
+		exit 1; \
+	fi; \
+	rm -f "$$output"
